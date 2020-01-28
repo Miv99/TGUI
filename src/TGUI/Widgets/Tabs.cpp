@@ -26,7 +26,7 @@
 #include <TGUI/Widgets/Tabs.hpp>
 #include <TGUI/Clipping.hpp>
 
-#ifdef TGUI_USE_CPP17
+#if TGUI_COMPILED_WITH_CPP_VER >= 17
     #include <optional>
 #endif
 
@@ -371,13 +371,6 @@ namespace tgui
 
             recalculateTabsWidth();
         }
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    unsigned int Tabs::getTextSize() const
-    {
-        return m_textSize;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -760,13 +753,13 @@ namespace tgui
         }
 
         if (node->propertyValuePairs["maximumtabwidth"])
-            setMaximumTabWidth(tgui::stof(node->propertyValuePairs["maximumtabwidth"]->value));
+            setMaximumTabWidth(strToFloat(node->propertyValuePairs["maximumtabwidth"]->value));
         if (node->propertyValuePairs["textsize"])
-            setTextSize(tgui::stoi(node->propertyValuePairs["textsize"]->value));
+            setTextSize(strToInt(node->propertyValuePairs["textsize"]->value));
         if (node->propertyValuePairs["tabheight"])
-            setTabHeight(tgui::stof(node->propertyValuePairs["tabheight"]->value));
+            setTabHeight(strToFloat(node->propertyValuePairs["tabheight"]->value));
         if (node->propertyValuePairs["selected"])
-            select(tgui::stoi(node->propertyValuePairs["selected"]->value));
+            select(strToInt(node->propertyValuePairs["selected"]->value));
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -869,15 +862,15 @@ namespace tgui
 
             // Apply clipping if required for the text in this tab
             const float usableWidth = m_tabs[i].width - (2 * m_distanceToSideCached);
-        #ifdef TGUI_USE_CPP17
+#if TGUI_COMPILED_WITH_CPP_VER >= 17
             std::optional<Clipping> clipping;
             if (m_tabs[i].text.getSize().x > usableWidth)
                 clipping.emplace(target, textStates, Vector2f{m_distanceToSideCached, 0}, Vector2f{usableWidth, usableHeight});
-        #else
+#else
             std::unique_ptr<Clipping> clipping;
             if (m_tabs[i].text.getSize().x > usableWidth)
                 clipping = std::make_unique<Clipping>(target, textStates, Vector2f{m_distanceToSideCached, 0}, Vector2f{usableWidth, usableHeight});
-        #endif
+#endif
 
             // Draw the text
             textStates.transform.translate({m_distanceToSideCached + ((usableWidth - m_tabs[i].text.getSize().x) / 2.f), ((usableHeight - m_tabs[i].text.getSize().y) / 2.f)});

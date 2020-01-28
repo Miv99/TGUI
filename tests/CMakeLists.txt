@@ -14,6 +14,8 @@ set(TEST_SOURCES
     Outline.cpp
     Sprite.cpp
     Signal.cpp
+    SignalManager.cpp
+    String.cpp
     SvgImage.cpp
     Text.cpp
     Texture.cpp
@@ -121,7 +123,7 @@ set(target_install_dir "${TGUI_MISC_INSTALL_PREFIX}/tests")
 if (TGUI_SHARED_LIBS AND (TGUI_OS_LINUX OR TGUI_OS_BSD))
     file(RELATIVE_PATH rel_lib_dir
          ${CMAKE_INSTALL_PREFIX}/${target_install_dir}
-         ${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX})
+         ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
     set_target_properties(tests PROPERTIES
                           INSTALL_RPATH "$ORIGIN/${rel_lib_dir}")

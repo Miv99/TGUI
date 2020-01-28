@@ -32,6 +32,7 @@
 #include <TGUI/Signal.hpp>
 #include <TGUI/Sprite.hpp>
 #include <TGUI/Layout.hpp>
+#include <TGUI/String.hpp>
 #include <TGUI/Vector2f.hpp>
 #include <TGUI/Loading/Theme.hpp>
 #include <TGUI/Loading/DataIO.hpp>
@@ -47,7 +48,7 @@
 
 #include <unordered_set>
 
-#ifdef TGUI_USE_CPP17
+#if TGUI_COMPILED_WITH_CPP_VER >= 17
     #include <any>
 #else
     #include <TGUI/Any.hpp>
@@ -392,6 +393,14 @@ namespace tgui
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// @brief Returns whether there is an active animation (started with showWithEffect or hideWithEffect)
+        ///
+        /// @return Is an animation that shows or hides the widget playing?
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        bool isAnimationPlaying() const;
+
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// @brief Places the widget before all other widgets
         ///
         /// @warning This function only has an effect when the widget was already added to its parent (e.g. the Gui).
@@ -419,15 +428,15 @@ namespace tgui
         ///
         /// Examples:
         /// @code
-        /// widget->setUserData("Data");
+        /// widget->setUserData("Data"); // Note: type to retrieve with getUserData is 'const char*' here
         /// widget->setUserData(5);
         /// @endcode
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    #ifdef TGUI_USE_CPP17
+#if TGUI_COMPILED_WITH_CPP_VER >= 17
         void setUserData(std::any userData)
-    #else
+#else
         void setUserData(tgui::Any userData)
-    #endif
+#endif
         {
             m_userData = std::move(userData);
         }
@@ -440,11 +449,11 @@ namespace tgui
         template <typename T>
         T getUserData() const
         {
-        #ifdef TGUI_USE_CPP17
+#if TGUI_COMPILED_WITH_CPP_VER >= 17
             return std::any_cast<T>(m_userData);
-        #else
+#else
             return m_userData.as<T>();
-        #endif
+#endif
         }
 
 
@@ -481,6 +490,22 @@ namespace tgui
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// @brief Changes the character size of text in this widget if it uses text
+        ///
+        /// @param size  The new text size
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        virtual void setTextSize(unsigned int size);
+
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// @brief Returns the character size of text in this widget
+        ///
+        /// @return The current text size
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        virtual unsigned int getTextSize() const;
+
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// @brief Sets the tool tip that should be displayed when hovering over the widget
         ///
         /// @param toolTip  Any widget that you want to use as a tool tip (usually a Label)
@@ -494,6 +519,24 @@ namespace tgui
         /// @return The widget that is used as tool tip or nullptr when no tool tip has been set
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         Widget::Ptr getToolTip() const;
+
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// @brief Changes the name of a widget
+        ///
+        /// @param name  New name for the widget
+        ///
+        /// @warning This name is overwritten when adding the widget to its parent. You should only set it afterwards.
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        void setWidgetName(const std::string& name);
+
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// @brief Returns the name of a widget
+        ///
+        /// @return Name of the widget or an empty string when wasn't given a name
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        std::string getWidgetName() const;
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -620,6 +663,11 @@ namespace tgui
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         virtual void leftMouseButtonNoLongerDown();
 
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// @internal
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        virtual void rightMouseButtonNoLongerDown();
+
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// @internal
@@ -679,6 +727,18 @@ namespace tgui
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// @brief Retrieves a signal based on its name
+        ///
+        /// @param signalName  Name of the signal
+        ///
+        /// @return Signal that corresponds to the name
+        ///
+        /// @throw Exception when the name does not match any signal
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        Signal& getSignal(std::string signalName) override;
+
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// @brief Draw the widget to a render target
         ///
         /// This is a pure virtual function that has to be implemented by the derived class to define how the widget is drawn.
@@ -725,18 +785,6 @@ namespace tgui
 
         using SavingRenderersMap = std::map<const Widget*, std::pair<std::unique_ptr<DataIO::Node>, std::string>>;
         using LoadingRenderersMap = std::map<std::string, std::shared_ptr<RendererData>>;
-
-
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        /// @brief Retrieves a signal based on its name
-        ///
-        /// @param signalName  Name of the signal
-        ///
-        /// @return Signal that corresponds to the name
-        ///
-        /// @throw Exception when the name does not match any signal
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        Signal& getSignal(std::string signalName) override;
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -815,9 +863,11 @@ namespace tgui
     protected:
 
         std::string m_type;
+        std::string m_name;
 
         Layout2d m_position;
         Layout2d m_size;
+        unsigned int m_textSize = 0;
 
         // The previous position and size have to be stored because when setPosition/setSize is called, the layout may already be
         // changed and there would be no way for the widget to detect whether the values changed or not.
@@ -874,11 +924,11 @@ namespace tgui
         float m_opacityCached = 1;
         bool m_transparentTextureCached = false;
 
-    #ifdef TGUI_USE_CPP17
+#if TGUI_COMPILED_WITH_CPP_VER >= 17
         std::any m_userData;
-    #else
+#else
         tgui::Any m_userData;
-    #endif
+#endif
 
         std::function<void(const std::string& property)> m_rendererChangedCallback = [this](const std::string& property){ rendererChangedCallback(property); };
 

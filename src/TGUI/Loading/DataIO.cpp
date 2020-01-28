@@ -25,6 +25,7 @@
 
 #include <TGUI/Loading/DataIO.hpp>
 #include <TGUI/Global.hpp>
+#include <TGUI/String.hpp>
 #include <TGUI/to_string.hpp>
 
 #include <cctype>
@@ -313,13 +314,13 @@ namespace tgui
                             }
                             else if (line[i] == '"')
                             {
-                                valueNode->valueList.back().insert(valueNode->valueList.back().getSize(), line[i]);
+                                valueNode->valueList.back().insert(valueNode->valueList.back().size(), 1, line[i]);
                                 i++;
 
                                 bool backslash = false;
                                 while (i < line.size()-1)
                                 {
-                                    valueNode->valueList.back().insert(valueNode->valueList.back().getSize(), line[i]);
+                                    valueNode->valueList.back().insert(valueNode->valueList.back().size(), 1, line[i]);
 
                                     if (line[i] == '"' && !backslash)
                                     {
@@ -337,7 +338,7 @@ namespace tgui
                             }
                             else
                             {
-                                valueNode->valueList.back().insert(valueNode->valueList.back().getSize(), line[i]);
+                                valueNode->valueList.back().insert(valueNode->valueList.back().size(), 1, line[i]);
                                 i++;
                             }
                         }
@@ -524,7 +525,7 @@ namespace tgui
     void DataIO::emit(const std::unique_ptr<Node>& rootNode, std::stringstream& stream)
     {
         for (const auto& pair : rootNode->propertyValuePairs)
-            stream << pair.first << " = " << pair.second->value.toAnsiString() << ";" << std::endl;
+            stream << pair.first << " = " << pair.second->value << ";" << std::endl;
 
         if (rootNode->propertyValuePairs.size() > 0 && rootNode->children.size() > 0)
             stream << std::endl;

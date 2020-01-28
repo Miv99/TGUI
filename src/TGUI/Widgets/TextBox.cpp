@@ -45,6 +45,7 @@ namespace tgui
         m_textSelection2.setFont(m_fontCached);
         m_textAfterSelection1.setFont(m_fontCached);
         m_textAfterSelection2.setFont(m_fontCached);
+        m_defaultText.setFont(m_fontCached);
 
         m_horizontalScrollbar->setSize(m_horizontalScrollbar->getSize().y, m_horizontalScrollbar->getSize().x);
         m_horizontalScrollbar->setVisible(false);
@@ -153,6 +154,20 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    void TextBox::setDefaultText(const sf::String& text)
+    {
+        m_defaultText.setString(text);
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    const sf::String& TextBox::getDefaultText() const
+    {
+        return m_defaultText.getString();
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     void TextBox::setSelectedText(std::size_t selectionStartIndex, std::size_t selectionEndIndex)
     {
         setCaretPosition(selectionEndIndex);
@@ -203,6 +218,7 @@ namespace tgui
         m_textSelection2.setCharacterSize(m_textSize);
         m_textAfterSelection1.setCharacterSize(m_textSize);
         m_textAfterSelection2.setCharacterSize(m_textSize);
+        m_defaultText.setCharacterSize(m_textSize);
 
         // Calculate the height of one line
         m_lineHeight = static_cast<unsigned int>(m_fontCached.getLineSpacing(m_textSize));
@@ -211,13 +227,6 @@ namespace tgui
         m_horizontalScrollbar->setScrollAmount(m_textSize);
 
         rearrangeText(true);
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    unsigned int TextBox::getTextSize() const
-    {
-        return m_textSize;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1087,7 +1096,7 @@ namespace tgui
         if ((m_maxChars > 0) && (m_text.getSize() + 1 > m_maxChars))
             return;
 
-        auto insert = [=]()
+        auto insert = TGUI_LAMBDA_CAPTURE_EQ_THIS()
         {
             deleteSelectedCharacters();
 
@@ -1591,8 +1600,8 @@ namespace tgui
 
     Vector2f TextBox::getInnerSize() const
     {
-        return {getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight(),
-                getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom()};
+        return {std::max(0.f, getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight()),
+                std::max(0.f, getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom())};
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1627,6 +1636,8 @@ namespace tgui
         // Calculate the position of the text objects
         m_selectionRects.clear();
         m_textBeforeSelection.setPosition({textOffset, 0});
+        m_defaultText.setPosition({ textOffset, 0 });
+
         if (m_selStart != m_selEnd)
         {
             auto selectionStart = m_selStart;
@@ -1780,6 +1791,10 @@ namespace tgui
             m_textSelection1.setColor(getSharedRenderer()->getSelectedTextColor());
             m_textSelection2.setColor(getSharedRenderer()->getSelectedTextColor());
         }
+        else if (property == "defaulttextcolor")
+        {
+            m_defaultText.setColor(getSharedRenderer()->getDefaultTextColor());
+        }
         else if (property == "texturebackground")
         {
             m_spriteBackground.setTexture(getSharedRenderer()->getTextureBackground());
@@ -1836,6 +1851,7 @@ namespace tgui
             m_textAfterSelection2.setOpacity(m_opacityCached);
             m_textSelection1.setOpacity(m_opacityCached);
             m_textSelection2.setOpacity(m_opacityCached);
+            m_defaultText.setOpacity(m_opacityCached);
         }
         else if (property == "font")
         {
@@ -1846,6 +1862,7 @@ namespace tgui
             m_textSelection2.setFont(m_fontCached);
             m_textAfterSelection1.setFont(m_fontCached);
             m_textAfterSelection2.setFont(m_fontCached);
+            m_defaultText.setFont(m_fontCached);
             setTextSize(getTextSize());
         }
         else
@@ -1859,6 +1876,8 @@ namespace tgui
         auto node = Widget::save(renderers);
 
         node->propertyValuePairs["Text"] = std::make_unique<DataIO::ValueNode>(Serializer::serialize(getText()));
+        if (!getDefaultText().isEmpty())
+            node->propertyValuePairs["DefaultText"] = std::make_unique<DataIO::ValueNode>(Serializer::serialize(getDefaultText()));
         node->propertyValuePairs["TextSize"] = std::make_unique<DataIO::ValueNode>(to_string(m_textSize));
         node->propertyValuePairs["MaximumCharacters"] = std::make_unique<DataIO::ValueNode>(to_string(m_maxChars));
 
@@ -1891,10 +1910,12 @@ namespace tgui
 
         if (node->propertyValuePairs["text"])
             setText(Deserializer::deserialize(ObjectConverter::Type::String, node->propertyValuePairs["text"]->value).getString());
+        if (node->propertyValuePairs["defaulttext"])
+            setDefaultText(Deserializer::deserialize(ObjectConverter::Type::String, node->propertyValuePairs["defaulttext"]->value).getString());
         if (node->propertyValuePairs["textsize"])
-            setTextSize(tgui::stoi(node->propertyValuePairs["textsize"]->value));
+            setTextSize(strToInt(node->propertyValuePairs["textsize"]->value));
         if (node->propertyValuePairs["maximumcharacters"])
-            setMaximumCharacters(tgui::stoi(node->propertyValuePairs["maximumcharacters"]->value));
+            setMaximumCharacters(strToInt(node->propertyValuePairs["maximumcharacters"]->value));
         if (node->propertyValuePairs["readonly"])
             setReadOnly(Deserializer::deserialize(ObjectConverter::Type::Bool, node->propertyValuePairs["readonly"]->value).getBool());
 
@@ -1985,13 +2006,20 @@ namespace tgui
             }
 
             // Draw the text
-            m_textBeforeSelection.draw(target, states);
-            if (m_selStart != m_selEnd)
+            if (m_text.isEmpty())
             {
-                m_textSelection1.draw(target, states);
-                m_textSelection2.draw(target, states);
-                m_textAfterSelection1.draw(target, states);
-                m_textAfterSelection2.draw(target, states);
+                m_defaultText.draw(target, states);
+            }
+            else
+            {
+                m_textBeforeSelection.draw(target, states);
+                if (m_selStart != m_selEnd)
+                {
+                    m_textSelection1.draw(target, states);
+                    m_textSelection2.draw(target, states);
+                    m_textAfterSelection1.draw(target, states);
+                    m_textAfterSelection2.draw(target, states);
+                }
             }
 
             // Only draw the caret when needed

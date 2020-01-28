@@ -112,7 +112,7 @@ namespace tgui
     {
         // Copy all the widgets
         for (std::size_t i = 0; i < other.m_widgets.size(); ++i)
-            add(other.m_widgets[i]->clone(), other.m_widgetNames[i]);
+            add(other.m_widgets[i]->clone(), other.m_widgets[i]->getWidgetName());
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -120,7 +120,6 @@ namespace tgui
     Container::Container(Container&& other) :
         Widget                {std::move(other)},
         m_widgets             {std::move(other.m_widgets)},
-        m_widgetNames         {std::move(other.m_widgetNames)},
         m_widgetBelowMouse    {std::move(other.m_widgetBelowMouse)},
         m_focusedWidget       {std::move(other.m_focusedWidget)},
         m_handingMouseReleased{std::move(other.m_handingMouseReleased)}
@@ -161,7 +160,7 @@ namespace tgui
             for (std::size_t i = 0; i < right.m_widgets.size(); ++i)
             {
                 // Don't allow the 'add' function of a derived class to be called, since its members are not copied yet
-                Container::add(right.m_widgets[i]->clone(), right.m_widgetNames[i]);
+                Container::add(right.m_widgets[i]->clone(), right.m_widgets[i]->getWidgetName());
             }
         }
 
@@ -177,7 +176,6 @@ namespace tgui
         {
             Widget::operator=(std::move(right));
             m_widgets              = std::move(right.m_widgets);
-            m_widgetNames          = std::move(right.m_widgetNames);
             m_widgetBelowMouse     = std::move(right.m_widgetBelowMouse);
             m_focusedWidget        = std::move(right.m_focusedWidget);
             m_handingMouseReleased = std::move(right.m_handingMouseReleased);
@@ -218,28 +216,34 @@ namespace tgui
     {
         assert(widgetPtr != nullptr);
 
+        if (widgetPtr->getParent())
+            widgetPtr->getParent()->remove(widgetPtr);
+
         widgetPtr->setParent(this);
         m_widgets.push_back(widgetPtr);
-        m_widgetNames.push_back(widgetName);
+        widgetPtr->setWidgetName(widgetName);
 
         if (m_fontCached != getGlobalFont())
             widgetPtr->setInheritedFont(m_fontCached);
 
         if (m_opacityCached < 1)
             widgetPtr->setInheritedOpacity(m_opacityCached);
+
+        if (m_textSize != 0)
+            widgetPtr->setTextSize(m_textSize);
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     Widget::Ptr Container::get(const sf::String& widgetName) const
     {
-        for (std::size_t i = 0; i < m_widgetNames.size(); ++i)
+        for (std::size_t i = 0; i < m_widgets.size(); ++i)
         {
-            if (m_widgetNames[i] == widgetName)
+            if (m_widgets[i]->getWidgetName() == widgetName)
                 return m_widgets[i];
         }
 
-        for (std::size_t i = 0; i < m_widgetNames.size(); ++i)
+        for (std::size_t i = 0; i < m_widgets.size(); ++i)
         {
             if (m_widgets[i]->isContainer())
             {
@@ -277,7 +281,6 @@ namespace tgui
                 // Remove the widget
                 widget->setParent(nullptr);
                 m_widgets.erase(m_widgets.begin() + i);
-                m_widgetNames.erase(m_widgetNames.begin() + i);
                 return true;
             }
         }
@@ -293,21 +296,20 @@ namespace tgui
             widget->setParent(nullptr);
 
         m_widgets.clear();
-        m_widgetNames.clear();
 
         m_widgetBelowMouse = nullptr;
         m_focusedWidget = nullptr;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+#ifndef TGUI_REMOVE_DEPRECATED_CODE
     bool Container::setWidgetName(const Widget::Ptr& widget, const std::string& name)
     {
         for (std::size_t i = 0; i < m_widgets.size(); ++i)
         {
             if (m_widgets[i] == widget)
             {
-                m_widgetNames[i] = name;
+                m_widgets[i]->setWidgetName(name);
                 return true;
             }
         }
@@ -322,12 +324,12 @@ namespace tgui
         for (std::size_t i = 0; i < m_widgets.size(); ++i)
         {
             if (m_widgets[i] == widget)
-                return m_widgetNames[i];
+                return m_widgets[i]->getWidgetName();
         }
 
         return "";
     }
-
+#endif
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     void Container::uncheckRadioButtons()
@@ -349,7 +351,20 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void Container::loadWidgetsFromFile(const std::string& filename)
+    void Container::setTextSize(unsigned int size)
+    {
+        Widget::setTextSize(size);
+
+        if (size != 0)
+        {
+            for (const auto& widget : m_widgets)
+                widget->setTextSize(size);
+        }
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    void Container::loadWidgetsFromFile(const std::string& filename, bool replaceExisting)
     {
         std::ifstream in{filename};
         if (!in.is_open())
@@ -357,7 +372,7 @@ namespace tgui
 
         std::stringstream stream;
         stream << in.rdbuf();
-        loadWidgetsFromStream(stream);
+        loadWidgetsFromStream(stream, replaceExisting);
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -376,11 +391,13 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void Container::loadWidgetsFromStream(std::stringstream& stream)
+    void Container::loadWidgetsFromStream(std::stringstream& stream, bool replaceExisting)
     {
         auto rootNode = DataIO::parse(stream);
 
-        removeAllWidgets(); // The existing widgets will be replaced by the ones that will be loaded
+        // Replace the existing widgets by the ones that will be loaded if requested
+        if (replaceExisting)
+            removeAllWidgets();
 
         if (rootNode->propertyValuePairs.size() != 0)
             Widget::load(rootNode, {});
@@ -417,9 +434,9 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void Container::loadWidgetsFromStream(std::stringstream&& stream)
+    void Container::loadWidgetsFromStream(std::stringstream&& stream, bool replaceExisting)
     {
-        loadWidgetsFromStream(stream);
+        loadWidgetsFromStream(stream, replaceExisting);
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -468,11 +485,9 @@ namespace tgui
 
             // Copy the widget
             m_widgets.push_back(m_widgets[i]);
-            m_widgetNames.push_back(m_widgetNames[i]);
 
             // Remove the old widget
             m_widgets.erase(m_widgets.begin() + i);
-            m_widgetNames.erase(m_widgetNames.begin() + i);
             break;
         }
     }
@@ -489,13 +504,10 @@ namespace tgui
 
             // Copy the widget
             const Widget::Ptr obj = m_widgets[i];
-            const std::string name = m_widgetNames[i];
             m_widgets.insert(m_widgets.begin(), obj);
-            m_widgetNames.insert(m_widgetNames.begin(), name);
 
             // Remove the old widget
             m_widgets.erase(m_widgets.begin() + i + 1);
-            m_widgetNames.erase(m_widgetNames.begin() + i + 1);
             break;
         }
     }
@@ -664,8 +676,10 @@ namespace tgui
         event.mouseButton.x = static_cast<int>(pos.x - getPosition().x - getChildWidgetsOffset().x);
         event.mouseButton.y = static_cast<int>(pos.y - getPosition().y - getChildWidgetsOffset().y);
 
-        // Let the event manager handle the event, but don't let it call leftMouseButtonNoLongerDown on all widgets (it will be done later)
+        // Let the event manager handle the event, but don't let it call rightMouseButtonNoLongerDown on all widgets (it will be done later)
+        m_handingMouseReleased = true;
         handleEvent(event);
+        m_handingMouseReleased = false;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -744,6 +758,16 @@ namespace tgui
 
         for (auto& widget : m_widgets)
             widget->leftMouseButtonNoLongerDown();
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    void Container::rightMouseButtonNoLongerDown()
+    {
+        Widget::rightMouseButtonNoLongerDown();
+
+        for (auto& widget : m_widgets)
+            widget->rightMouseButtonNoLongerDown();
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -914,6 +938,8 @@ namespace tgui
                     widget->mousePressed(event.mouseButton.button, mousePos);
                 else // Touch began of finger 0
                     widget->mousePressed(sf::Mouse::Button::Left, mousePos);
+
+                return true;
             }
             else // The mouse did not went down on a widget, so unfocus the focused child widget, but keep ourselves focused
             {
@@ -943,7 +969,7 @@ namespace tgui
                 if (event.type == sf::Event::MouseButtonReleased)
                     widgetBelowMouse->mouseReleased(event.mouseButton.button, mousePos);
                 else
-                    widgetBelowMouse->mouseReleased(sf::Mouse::Button::Right, mousePos);
+                    widgetBelowMouse->mouseReleased(sf::Mouse::Button::Left, mousePos);
             }
 
             if (((event.type == sf::Event::MouseButtonReleased) && (event.mouseButton.button == sf::Mouse::Left))
@@ -957,6 +983,15 @@ namespace tgui
                     // TODO: Only call leftMouseButtonNoLongerDown on the widget that last got the left mouse down event
                     for (auto& widget : m_widgets)
                         widget->leftMouseButtonNoLongerDown();
+                }
+            }
+            else if ((event.type == sf::Event::MouseButtonReleased) && (event.mouseButton.button == sf::Mouse::Right))
+            {
+                // TODO: Same remark as above for leftMouseButtonNoLongerDown
+                if (!m_handingMouseReleased)
+                {
+                    for (auto& widget : m_widgets)
+                        widget->rightMouseButtonNoLongerDown();
                 }
             }
 

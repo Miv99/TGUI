@@ -95,6 +95,7 @@ namespace tgui
         ///
         /// @param size  The new size of the slider
         ///
+        /// Note that the VerticalScroll propery is changed by this function based on the given width and height.
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         void setSize(const Layout2d& size) override;
         using Widget::setSize;
@@ -214,6 +215,22 @@ namespace tgui
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// @brief Changes whether the slider lies horizontally or vertically
+        /// @param vertical  Should the slider lie vertically?
+        ///
+        /// This function will swap the width and height of the slider if it didn't lie in the wanted direction.
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        void setVerticalScroll(bool vertical);
+
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// @brief Returns whether the slider lies horizontally or vertically
+        /// @return Does the slider lie vertically?
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        bool getVerticalScroll() const;
+
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// @brief Changes whether the side of the slider that is the minimum and maximum should be inverted
         /// @param invertedDirection  Should the direction be inverted?
         ///
@@ -243,6 +260,7 @@ namespace tgui
         /// @return Can the slider value be changed with the mouse wheel?
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         bool getChangeValueOnScroll() const;
+
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// @brief Returns whether the mouse position (which is relative to the parent widget) lies on top of the widget
@@ -369,7 +387,7 @@ namespace tgui
         bool m_verticalScroll = false; // Is the slider drawn vertically?
         bool m_verticalImage = false; // Does the image lie vertically?
         bool m_changeValueOnScroll = true; // Does mouseScroll event change slider value?
-        
+
         Sprite m_spriteTrack;
         Sprite m_spriteTrackHover;
         Sprite m_spriteThumb;

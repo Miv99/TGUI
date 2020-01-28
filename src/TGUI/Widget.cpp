@@ -28,6 +28,7 @@
 #include <TGUI/Animation.hpp>
 #include <TGUI/Vector2f.hpp>
 #include <TGUI/Loading/WidgetFactory.hpp>
+#include <TGUI/SignalManager.hpp>
 #include <SFML/System/Err.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 
@@ -131,6 +132,8 @@ namespace tgui
 
         for (auto& layout : m_boundSizeLayouts)
             layout->unbindWidget();
+
+        SignalManager::getSignalManager()->remove(this);
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -139,8 +142,10 @@ namespace tgui
         SignalWidgetBase               {other},
         enable_shared_from_this<Widget>{other},
         m_type                         {other.m_type},
+        m_name                         {other.m_name},
         m_position                     {other.m_position},
         m_size                         {other.m_size},
+        m_textSize                     {other.m_textSize},
         m_boundPositionLayouts         {},
         m_boundSizeLayouts             {},
         m_enabled                      {other.m_enabled},
@@ -174,8 +179,10 @@ namespace tgui
         onMouseEnter                   {std::move(other.onMouseEnter)},
         onMouseLeave                   {std::move(other.onMouseLeave)},
         m_type                         {std::move(other.m_type)},
+        m_name                         {std::move(other.m_name)},
         m_position                     {std::move(other.m_position)},
         m_size                         {std::move(other.m_size)},
+        m_textSize                     {std::move(other.m_textSize)},
         m_boundPositionLayouts         {std::move(other.m_boundPositionLayouts)},
         m_boundSizeLayouts             {std::move(other.m_boundSizeLayouts)},
         m_enabled                      {std::move(other.m_enabled)},
@@ -202,6 +209,9 @@ namespace tgui
         m_renderer->subscribe(this, m_rendererChangedCallback);
 
         other.m_renderer = nullptr;
+
+        if (other.m_parent)
+            m_parent->remove(other.shared_from_this());
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -223,13 +233,14 @@ namespace tgui
             onMouseLeave.disconnectAll();
 
             m_type                 = other.m_type;
+            m_name                 = other.m_name;
             m_position             = other.m_position;
             m_size                 = other.m_size;
+            m_textSize             = other.m_textSize;
             m_boundPositionLayouts = {};
             m_boundSizeLayouts     = {};
             m_enabled              = other.m_enabled;
             m_visible              = other.m_visible;
-            m_parent               = nullptr;
             m_mouseHover           = false;
             m_mouseDown            = false;
             m_focused              = false;
@@ -248,6 +259,12 @@ namespace tgui
             m_size.y.connectWidget(this, false, [this]{ setSize(getSizeLayout()); });
 
             m_renderer->subscribe(this, m_rendererChangedCallback);
+
+            if (m_parent)
+            {
+                SignalManager::getSignalManager()->remove(this);
+                SignalManager::getSignalManager()->add(shared_from_this());
+            }
         }
 
         return *this;
@@ -272,13 +289,14 @@ namespace tgui
             onMouseEnter           = std::move(other.onMouseEnter);
             onMouseLeave           = std::move(other.onMouseLeave);
             m_type                 = std::move(other.m_type);
+            m_name                 = std::move(other.m_name);
             m_position             = std::move(other.m_position);
             m_size                 = std::move(other.m_size);
+            m_textSize             = std::move(other.m_textSize);
             m_boundPositionLayouts = std::move(other.m_boundPositionLayouts);
             m_boundSizeLayouts     = std::move(other.m_boundSizeLayouts);
             m_enabled              = std::move(other.m_enabled);
             m_visible              = std::move(other.m_visible);
-            m_parent               = nullptr;
             m_mouseHover           = std::move(other.m_mouseHover);
             m_mouseDown            = std::move(other.m_mouseDown);
             m_focused              = std::move(other.m_focused);
@@ -299,6 +317,12 @@ namespace tgui
             m_renderer->subscribe(this, m_rendererChangedCallback);
 
             other.m_renderer = nullptr;
+
+            if (m_parent)
+            {
+                SignalManager::getSignalManager()->remove(&other);
+                SignalManager::getSignalManager()->add(shared_from_this());
+            }
         }
 
         return *this;
@@ -492,20 +516,23 @@ namespace tgui
                 else // If fading was already in progress then adapt the duration to finish the animation sooner
                     duration *= (startOpacity / endOpacity);
 
-                m_showAnimations.push_back(std::make_shared<priv::FadeAnimation>(shared_from_this(), animStartOpacity, endOpacity, duration, [=]{onAnimationFinished.emit(this, type, true); }));
+                m_showAnimations.push_back(std::make_shared<priv::FadeAnimation>(shared_from_this(), animStartOpacity, endOpacity, duration,
+                                                                                 TGUI_LAMBDA_CAPTURE_EQ_THIS{onAnimationFinished.emit(this, type, true); }));
                 break;
             }
             case ShowAnimationType::Scale:
             {
                 m_showAnimations.push_back(std::make_shared<priv::MoveAnimation>(shared_from_this(), getPosition() + (getSize() / 2.f), getPosition(), duration));
-                m_showAnimations.push_back(std::make_shared<priv::ResizeAnimation>(shared_from_this(), Vector2f{0, 0}, getSize(), duration, [=]{onAnimationFinished.emit(this, type, true); }));
+                m_showAnimations.push_back(std::make_shared<priv::ResizeAnimation>(shared_from_this(), Vector2f{0, 0}, getSize(), duration,
+                                                                                   TGUI_LAMBDA_CAPTURE_EQ_THIS{onAnimationFinished.emit(this, type, true); }));
                 setPosition(getPosition() + (getSize() / 2.f));
                 setSize(0, 0);
                 break;
             }
             case ShowAnimationType::SlideFromLeft:
             {
-                m_showAnimations.push_back(std::make_shared<priv::MoveAnimation>(shared_from_this(), Vector2f{-getFullSize().x, getPosition().y}, getPosition(), duration, [=]{onAnimationFinished.emit(this, type, true); }));
+                m_showAnimations.push_back(std::make_shared<priv::MoveAnimation>(shared_from_this(), Vector2f{-getFullSize().x, getPosition().y}, getPosition(), duration,
+                                                                                 TGUI_LAMBDA_CAPTURE_EQ_THIS{onAnimationFinished.emit(this, type, true); }));
                 setPosition({-getFullSize().x, getPosition().y});
                 break;
             }
@@ -513,7 +540,8 @@ namespace tgui
             {
                 if (getParent())
                 {
-                    m_showAnimations.push_back(std::make_shared<priv::MoveAnimation>(shared_from_this(), Vector2f{getParent()->getSize().x + getWidgetOffset().x, getPosition().y}, getPosition(), duration, [=]{onAnimationFinished.emit(this, type, true); }));
+                    m_showAnimations.push_back(std::make_shared<priv::MoveAnimation>(shared_from_this(), Vector2f{getParent()->getSize().x + getWidgetOffset().x, getPosition().y}, getPosition(), duration,
+                                                                                     TGUI_LAMBDA_CAPTURE_EQ_THIS{onAnimationFinished.emit(this, type, true); }));
                     setPosition({getParent()->getSize().x + getWidgetOffset().x, getPosition().y});
                 }
                 else
@@ -525,7 +553,8 @@ namespace tgui
             }
             case ShowAnimationType::SlideFromTop:
             {
-                m_showAnimations.push_back(std::make_shared<priv::MoveAnimation>(shared_from_this(), Vector2f{getPosition().x, -getFullSize().y}, getPosition(), duration, [=]{onAnimationFinished.emit(this, type, true); }));
+                m_showAnimations.push_back(std::make_shared<priv::MoveAnimation>(shared_from_this(), Vector2f{getPosition().x, -getFullSize().y}, getPosition(), duration,
+                                                                                 TGUI_LAMBDA_CAPTURE_EQ_THIS{onAnimationFinished.emit(this, type, true); }));
                 setPosition({getPosition().x, -getFullSize().y});
                 break;
             }
@@ -533,7 +562,8 @@ namespace tgui
             {
                 if (getParent())
                 {
-                    m_showAnimations.push_back(std::make_shared<priv::MoveAnimation>(shared_from_this(), Vector2f{getPosition().x, getParent()->getSize().y + getWidgetOffset().y}, getPosition(), duration, [=]{onAnimationFinished.emit(this, type, true); }));
+                    m_showAnimations.push_back(std::make_shared<priv::MoveAnimation>(shared_from_this(), Vector2f{getPosition().x, getParent()->getSize().y + getWidgetOffset().y}, getPosition(), duration,
+                                                                                     TGUI_LAMBDA_CAPTURE_EQ_THIS{onAnimationFinished.emit(this, type, true); }));
                     setPosition({getPosition().x, getParent()->getSize().y + getWidgetOffset().y});
                 }
                 else
@@ -572,7 +602,7 @@ namespace tgui
                     duration *= (startOpacity / endOpacity);
 
                 m_showAnimations.push_back(std::make_shared<priv::FadeAnimation>(shared_from_this(), startOpacity, 0.f, duration,
-                    [=](){ setVisible(false); setInheritedOpacity(endOpacity); onAnimationFinished.emit(this, type, false); }));
+                    TGUI_LAMBDA_CAPTURE_EQ_THIS{ setVisible(false); setInheritedOpacity(endOpacity); onAnimationFinished.emit(this, type, false); }));
                 break;
             }
             case ShowAnimationType::Scale:
@@ -580,7 +610,7 @@ namespace tgui
                 const auto size = getSize();
                 m_showAnimations.push_back(std::make_shared<priv::MoveAnimation>(shared_from_this(), position, position + (size / 2.f), duration));
                 m_showAnimations.push_back(std::make_shared<priv::ResizeAnimation>(shared_from_this(), size, Vector2f{0, 0}, duration,
-                    [=](){ setVisible(false); setPosition(position); setSize(size); onAnimationFinished.emit(this, type, false); }));
+                    TGUI_LAMBDA_CAPTURE_EQ_THIS{ setVisible(false); setPosition(position); setSize(size); onAnimationFinished.emit(this, type, false); }));
                 break;
             }
             case ShowAnimationType::SlideToRight:
@@ -588,7 +618,7 @@ namespace tgui
                 if (getParent())
                 {
                     m_showAnimations.push_back(std::make_shared<priv::MoveAnimation>(shared_from_this(), position, Vector2f{getParent()->getSize().x + getWidgetOffset().x, position.y}, duration,
-                        [=](){ setVisible(false); setPosition(position); onAnimationFinished.emit(this, type, false); }));
+                        TGUI_LAMBDA_CAPTURE_EQ_THIS{ setVisible(false); setPosition(position); onAnimationFinished.emit(this, type, false); }));
                 }
                 else
                 {
@@ -600,7 +630,7 @@ namespace tgui
             case ShowAnimationType::SlideToLeft:
             {
                 m_showAnimations.push_back(std::make_shared<priv::MoveAnimation>(shared_from_this(), position, Vector2f{-getFullSize().x, position.y}, duration,
-                    [=](){ setVisible(false); setPosition(position); onAnimationFinished.emit(this, type, false); }));
+                    TGUI_LAMBDA_CAPTURE_EQ_THIS{ setVisible(false); setPosition(position); onAnimationFinished.emit(this, type, false); }));
                 break;
             }
             case ShowAnimationType::SlideToBottom:
@@ -608,7 +638,7 @@ namespace tgui
                 if (getParent())
                 {
                     m_showAnimations.push_back(std::make_shared<priv::MoveAnimation>(shared_from_this(), position, Vector2f{position.x, getParent()->getSize().y + getWidgetOffset().y}, duration,
-                        [=](){ setVisible(false); setPosition(position); onAnimationFinished.emit(this, type, false); }));
+                        TGUI_LAMBDA_CAPTURE_EQ_THIS{ setVisible(false); setPosition(position); onAnimationFinished.emit(this, type, false); }));
                 }
                 else
                 {
@@ -620,7 +650,7 @@ namespace tgui
             case ShowAnimationType::SlideToTop:
             {
                 m_showAnimations.push_back(std::make_shared<priv::MoveAnimation>(shared_from_this(), position, Vector2f{position.x, -getFullSize().y}, duration,
-                    [=](){ setVisible(false); setPosition(position); onAnimationFinished.emit(this, type, false); }));
+                    TGUI_LAMBDA_CAPTURE_EQ_THIS{ setVisible(false); setPosition(position); onAnimationFinished.emit(this, type, false); }));
                 break;
             }
         }
@@ -690,6 +720,13 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    bool Widget::isAnimationPlaying() const
+    {
+        return !m_showAnimations.empty();
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     void Widget::moveToFront()
     {
         if (m_parent)
@@ -736,6 +773,20 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    void Widget::setTextSize(unsigned int size)
+    {
+        m_textSize = size;
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    unsigned int Widget::getTextSize() const
+    {
+        return m_textSize;
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     void Widget::setToolTip(Widget::Ptr toolTip)
     {
         m_toolTip = toolTip;
@@ -746,6 +797,28 @@ namespace tgui
     Widget::Ptr Widget::getToolTip() const
     {
         return m_toolTip;
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    void Widget::setWidgetName(const std::string& name)
+    {
+        if (m_name != name)
+        {
+            m_name = name;
+            if (m_parent)
+            {
+                SignalManager::getSignalManager()->remove(this);
+                SignalManager::getSignalManager()->add(shared_from_this());
+            }
+        }
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    std::string Widget::getWidgetName() const
+    {
+        return m_name;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -780,6 +853,15 @@ namespace tgui
 
     void Widget::setParent(Container* parent)
     {
+        if (!parent)
+        {
+            SignalManager::getSignalManager()->remove(this);
+        }
+        else if (!m_parent)
+        {
+            SignalManager::getSignalManager()->add(shared_from_this());
+        }
+
         m_parent = parent;
 
         // Give the layouts another chance to find widgets to which it refers
@@ -901,6 +983,12 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    void Widget::rightMouseButtonNoLongerDown()
+    {
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     Widget::Ptr Widget::askToolTip(Vector2f mousePos)
     {
         if (m_toolTip && mouseOnWidget(mousePos))
@@ -992,8 +1080,7 @@ namespace tgui
     std::unique_ptr<DataIO::Node> Widget::save(SavingRenderersMap& renderers) const
     {
         sf::String widgetName;
-        if (getParent())
-            widgetName = getParent()->getWidgetName(shared_from_this());
+        widgetName = m_name;
 
         auto node = std::make_unique<DataIO::Node>();
         if (widgetName.isEmpty())
@@ -1009,6 +1096,51 @@ namespace tgui
             node->propertyValuePairs["Position"] = std::make_unique<DataIO::ValueNode>(m_position.toString());
         if (getSize() != Vector2f{})
             node->propertyValuePairs["Size"] = std::make_unique<DataIO::ValueNode>(m_size.toString());
+#if TGUI_COMPILED_WITH_CPP_VER >= 17
+        if (m_userData.has_value())
+        {
+            try
+            {
+                const sf::String string = std::any_cast<sf::String>(m_userData);
+                node->propertyValuePairs["UserData"] = std::make_unique<DataIO::ValueNode>(Serializer::serialize(string.toAnsiString()));
+            }
+            catch (const std::bad_any_cast&)
+            {
+                try
+                {
+                    const std::string string = std::any_cast<std::string>(m_userData);
+                    node->propertyValuePairs["UserData"] = std::make_unique<DataIO::ValueNode>(Serializer::serialize(string));
+                }
+                catch (const std::bad_any_cast&)
+                {
+                    try
+                    {
+                        const std::string string = std::any_cast<const char*>(m_userData);
+                        node->propertyValuePairs["UserData"] = std::make_unique<DataIO::ValueNode>(Serializer::serialize(string));
+                    }
+                    catch (const std::bad_any_cast&)
+                    {
+                    }
+                }
+            }
+        }
+#else
+        if (m_userData.not_null())
+        {
+            if (m_userData.is<sf::String>())
+            {
+                node->propertyValuePairs["UserData"] = std::make_unique<DataIO::ValueNode>(Serializer::serialize(m_userData.as<sf::String>().toAnsiString()));
+            }
+            else if (m_userData.is<std::string>())
+            {
+                node->propertyValuePairs["UserData"] = std::make_unique<DataIO::ValueNode>(Serializer::serialize(m_userData.as<std::string>()));
+            }
+            else if (m_userData.is<const char*>())
+            {
+                node->propertyValuePairs["UserData"] = std::make_unique<DataIO::ValueNode>(Serializer::serialize(m_userData.as<const char*>()));
+            }
+        }
+#endif
 
         if (getToolTip() != nullptr)
         {
@@ -1018,7 +1150,7 @@ namespace tgui
             toolTipNode->name = "ToolTip";
             toolTipNode->children.emplace_back(std::move(toolTipWidgetNode));
 
-            toolTipNode->propertyValuePairs["TimeToDisplay"] = std::make_unique<DataIO::ValueNode>(to_string(ToolTip::getTimeToDisplay().asSeconds()));
+            toolTipNode->propertyValuePairs["InitialDelay"] = std::make_unique<DataIO::ValueNode>(to_string(ToolTip::getInitialDelay().asSeconds()));
             toolTipNode->propertyValuePairs["DistanceToMouse"] = std::make_unique<DataIO::ValueNode>("(" + to_string(ToolTip::getDistanceToMouse().x) + "," + to_string(ToolTip::getDistanceToMouse().y) + ")");
 
             node->children.emplace_back(std::move(toolTipNode));
@@ -1044,6 +1176,14 @@ namespace tgui
             setPosition(parseLayout(node->propertyValuePairs["position"]->value));
         if (node->propertyValuePairs["size"])
             setSize(parseLayout(node->propertyValuePairs["size"]->value));
+        if (node->propertyValuePairs["userdata"])
+        {
+#if TGUI_COMPILED_WITH_CPP_VER >= 17
+            m_userData = std::make_any<std::string>(Deserializer::deserialize(ObjectConverter::Type::String, node->propertyValuePairs["userdata"]->value).getString().toAnsiString());
+#else
+            m_userData = tgui::Any(Deserializer::deserialize(ObjectConverter::Type::String, node->propertyValuePairs["userdata"]->value).getString().toAnsiString());
+#endif
+        }
 
         if (node->propertyValuePairs["renderer"])
         {
@@ -1064,8 +1204,12 @@ namespace tgui
             {
                 for (const auto& pair : childNode->propertyValuePairs)
                 {
-                    if (pair.first == "timetodisplay")
-                        ToolTip::setTimeToDisplay(sf::seconds(tgui::stof(pair.second->value)));
+                    if (pair.first == "initialdelay")
+                        ToolTip::setInitialDelay(sf::seconds(strToFloat(pair.second->value)));
+#ifndef TGUI_REMOVE_DEPRECATED_CODE
+                    else if (pair.first == "timetodisplay")
+                        ToolTip::setInitialDelay(sf::seconds(strToFloat(pair.second->value)));
+#endif
                     else if (pair.first == "distancetomouse")
                         ToolTip::setDistanceToMouse(Vector2f{pair.second->value});
                 }

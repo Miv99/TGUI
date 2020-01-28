@@ -104,8 +104,8 @@ namespace tgui
 
     Vector2f Panel::getInnerSize() const
     {
-        return {getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight() - m_paddingCached.getLeft() - m_paddingCached.getRight(),
-                getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom() - m_paddingCached.getTop() - m_paddingCached.getBottom()};
+        return {std::max(0.f, getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight() - m_paddingCached.getLeft() - m_paddingCached.getRight()),
+                std::max(0.f, getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom() - m_paddingCached.getTop() - m_paddingCached.getBottom())};
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -150,6 +150,38 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    void Panel::rightMousePressed(Vector2f pos)
+    {
+        m_rightMouseDown = true;
+        onRightMousePress.emit(this, pos - getPosition());
+
+        Container::rightMousePressed(pos);
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    void Panel::rightMouseReleased(Vector2f pos)
+    {
+        onRightMouseRelease.emit(this, pos - getPosition());
+
+        if (m_rightMouseDown)
+            onRightClick.emit(this, pos - getPosition());
+
+        m_rightMouseDown = false;
+
+        Container::rightMouseReleased(pos);
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    void Panel::rightMouseButtonNoLongerDown()
+    {
+        m_rightMouseDown = false;
+        Container::rightMouseButtonNoLongerDown();
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     Signal& Panel::getSignal(std::string signalName)
     {
         if (signalName == toLower(onMousePress.getName()))
@@ -158,6 +190,12 @@ namespace tgui
             return onMouseRelease;
         else if (signalName == toLower(onClick.getName()))
             return onClick;
+        else if (signalName == toLower(onRightMousePress.getName()))
+            return onRightMousePress;
+        else if (signalName == toLower(onRightMouseRelease.getName()))
+            return onRightMouseRelease;
+        else if (signalName == toLower(onRightClick.getName()))
+            return onRightClick;
         else
             return Group::getSignal(std::move(signalName));
     }

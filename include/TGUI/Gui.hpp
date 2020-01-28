@@ -217,15 +217,15 @@ namespace tgui
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         const std::vector<Widget::Ptr>& getWidgets() const;
 
-
+#ifndef TGUI_REMOVE_DEPRECATED_CODE
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// @brief Returns a list of the names of all the widgets
         ///
         /// @return Vector of all widget names
         ///
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        const std::vector<sf::String>& getWidgetNames() const;
-
+        TGUI_DEPRECATED("Use getWidgets() and Widget::getWidgetName instead") const std::vector<sf::String> getWidgetNames() const;
+#endif
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// @brief Adds a widget to the container
@@ -291,7 +291,7 @@ namespace tgui
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         void removeAllWidgets();
 
-
+#ifndef TGUI_REMOVE_DEPRECATED_CODE
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// @brief Changes the name of a widget
         ///
@@ -301,7 +301,7 @@ namespace tgui
         /// @return True when the name was changed, false when the widget wasn't part of this container
         ///
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        bool setWidgetName(const Widget::Ptr& widget, const std::string& name);
+        TGUI_DEPRECATED("Use Widget::setWidgetName instead") bool setWidgetName(const Widget::Ptr& widget, const std::string& name);
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -312,8 +312,8 @@ namespace tgui
         /// @return Name of the widget or an empty string when the widget didn't exist or wasn't given a name
         ///
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        std::string getWidgetName(const Widget::Ptr& widget) const;
-
+        TGUI_DEPRECATED("Use Widget::getWidgetName instead") std::string getWidgetName(const Widget::Ptr& widget) const;
+#endif
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// @brief Focuses the next widget
@@ -359,12 +359,23 @@ namespace tgui
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// @brief Changes the character size of all existing and future child widgets.
+        ///
+        /// @param size  The new text size
+        ///
+        /// The text size specified in this function overrides the global text size property. By default, the gui does not
+        /// pass any text size to the widgets and the widgets will use the global text size as default value.
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        void setTextSize(unsigned int size);
+
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// @brief Loads the child widgets from a text file
         ///
         /// @param filename  Filename of the widget file
-        ///
+        /// @param replaceExisting  Remove existing widgets first if there are any
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        void loadWidgetsFromFile(const std::string& filename);
+        void loadWidgetsFromFile(const std::string& filename, bool replaceExisting = true);
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -380,18 +391,18 @@ namespace tgui
         /// @brief Loads the child widgets from a string stream
         ///
         /// @param stream  stringstream that contains the widget file
-        ///
+        /// @param replaceExisting  Remove existing widgets first if there are any
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        void loadWidgetsFromStream(std::stringstream& stream);
+        void loadWidgetsFromStream(std::stringstream& stream, bool replaceExisting = true);
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// @brief Loads the child widgets from a string stream
         ///
         /// @param stream  stringstream that contains the widget file
-        ///
+        /// @param replaceExisting  Remove existing widgets first if there are any
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        void loadWidgetsFromStream(std::stringstream&& stream);
+        void loadWidgetsFromStream(std::stringstream&& stream, bool replaceExisting = true);
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -443,7 +454,7 @@ namespace tgui
         bool m_tooltipPossible = false;
         Vector2f m_lastMousePos;
 
-        sf::View m_view;
+        sf::View m_view{{0, 0, 1, 1}};
 
         bool m_TabKeyUsageEnabled = true;
 

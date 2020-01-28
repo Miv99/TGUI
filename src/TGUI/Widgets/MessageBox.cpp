@@ -54,8 +54,7 @@ namespace tgui
         ChildWindow      {other},
         onButtonPress    {other.onButtonPress},
         m_loadedThemeFile{other.m_loadedThemeFile},
-        m_buttonClassName{other.m_buttonClassName},
-        m_textSize       {other.m_textSize}
+        m_buttonClassName{other.m_buttonClassName}
     {
         identifyLabelAndButtons();
     }
@@ -68,13 +67,12 @@ namespace tgui
         m_loadedThemeFile{std::move(other.m_loadedThemeFile)},
         m_buttonClassName{std::move(other.m_buttonClassName)},
         m_buttons        {std::move(other.m_buttons)},
-        m_label          {std::move(other.m_label)},
-        m_textSize       {std::move(other.m_textSize)}
+        m_label          {std::move(other.m_label)}
     {
         for (auto& button : m_buttons)
         {
             button->disconnectAll("Pressed");
-            button->connect("Pressed", [=]() { onButtonPress.emit(this, button->getText()); });
+            button->connect("Pressed", TGUI_LAMBDA_CAPTURE_EQ_THIS{ onButtonPress.emit(this, button->getText()); });
         }
     }
 
@@ -92,7 +90,6 @@ namespace tgui
             std::swap(m_buttonClassName, temp.m_buttonClassName);
             std::swap(m_buttons,         temp.m_buttons);
             std::swap(m_label,           temp.m_label);
-            std::swap(m_textSize,        temp.m_textSize);
         }
 
         return *this;
@@ -111,12 +108,11 @@ namespace tgui
             m_buttonClassName = std::move(other.m_buttonClassName);
             m_buttons         = std::move(other.m_buttons);
             m_label           = std::move(other.m_label);
-            m_textSize        = std::move(other.m_textSize);
 
             for (auto& button : m_buttons)
             {
                 button->disconnectAll("Pressed");
-                button->connect("Pressed", [=]() { onButtonPress.emit(this, button->getText()); });
+                button->connect("Pressed", TGUI_LAMBDA_CAPTURE_EQ_THIS{ onButtonPress.emit(this, button->getText()); });
             }
         }
 
@@ -206,19 +202,12 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    unsigned int MessageBox::getTextSize() const
-    {
-        return m_textSize;
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
     void MessageBox::addButton(const sf::String& caption)
     {
         auto button = Button::create(caption);
         button->setRenderer(getSharedRenderer()->getButton());
         button->setTextSize(m_textSize);
-        button->connect("Pressed", [=]() { onButtonPress.emit(this, caption); });
+        button->connect("Pressed", TGUI_LAMBDA_CAPTURE_EQ_THIS{ onButtonPress.emit(this, caption); });
 
         add(button, "#TGUI_INTERNAL$MessageBoxButton:" + caption + "#");
         m_buttons.push_back(button);
@@ -350,7 +339,7 @@ namespace tgui
         ChildWindow::load(node, renderers);
 
         if (node->propertyValuePairs["textsize"])
-            setTextSize(tgui::stoi(node->propertyValuePairs["textsize"]->value));
+            setTextSize(strToInt(node->propertyValuePairs["textsize"]->value));
 
         identifyLabelAndButtons();
     }
@@ -363,12 +352,12 @@ namespace tgui
 
         for (unsigned int i = 0; i < m_widgets.size(); ++i)
         {
-            if ((m_widgetNames[i].getSize() >= 32) && (m_widgetNames[i].substring(0, 32) == "#TGUI_INTERNAL$MessageBoxButton:"))
+            if ((m_widgets[i]->getWidgetName().length() >= 32) && (m_widgets[i]->getWidgetName().substr(0, 32) == "#TGUI_INTERNAL$MessageBoxButton:"))
             {
                 auto button = std::dynamic_pointer_cast<Button>(m_widgets[i]);
 
                 button->disconnectAll("Pressed");
-                button->connect("Pressed", [=]() { onButtonPress.emit(this, button->getText()); });
+                button->connect("Pressed", TGUI_LAMBDA_CAPTURE_EQ_THIS{ onButtonPress.emit(this, button->getText()); });
                 m_buttons.push_back(button);
             }
         }

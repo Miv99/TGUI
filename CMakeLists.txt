@@ -25,7 +25,10 @@ if(NOT SFML_DIR AND NOT CMAKE_MODULE_PATH)
 endif()
 
 # Project name and version
-project(TGUI VERSION 0.8.5)
+project(TGUI VERSION 0.8.6)
+
+# TGUI uses the paths from the cmake GNUInstallDirs module as defaults (https://cmake.org/cmake/help/v3.0/module/GNUInstallDirs.html)
+include(GNUInstallDirs)
 
 # Include the configuration file
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Config.cmake)
@@ -51,6 +54,14 @@ endif()
 tgui_set_option(TGUI_BUILD_TESTS FALSE BOOL "TRUE to build the TGUI tests")
 tgui_set_option(TGUI_BUILD_GUI_BUILDER TRUE BOOL "TRUE to compile the GUI Builder")
 tgui_set_option(TGUI_BUILD_DOC FALSE BOOL "TRUE to generate the API documentation, FALSE to ignore it")
+tgui_set_option(TGUI_CXX_STANDARD "14" STRING "C++ standard version to build TGUI with. Possible values: 14, 17 or 20. Projects using TGUI must use a version equal or higher to this")
+
+# At least c++14 has to be used
+if (TGUI_CXX_STANDARD LESS "14")
+    message(FATAL_ERROR "TGUI_CXX_STANDARD has to be at least 14")
+else()
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/TGUI/Config.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/include/TGUI/Config.hpp @ONLY)
+endif()
 
 # Define the install directory for miscellaneous files
 if(TGUI_OS_WINDOWS OR TGUI_OS_IOS)
@@ -58,7 +69,7 @@ if(TGUI_OS_WINDOWS OR TGUI_OS_IOS)
 elseif(TGUI_OS_ANDROID)
     set(DEFAULT_INSTALL_MISC_DIR ${CMAKE_ANDROID_NDK}/sources/third_party/tgui)
 else()
-    set(DEFAULT_INSTALL_MISC_DIR share/tgui-${TGUI_VERSION_MAJOR}.${TGUI_VERSION_MINOR})
+    set(DEFAULT_INSTALL_MISC_DIR ${CMAKE_INSTALL_DATAROOTDIR}/tgui-${TGUI_VERSION_MAJOR}.${TGUI_VERSION_MINOR})
 endif()
 tgui_set_option(TGUI_MISC_INSTALL_PREFIX "${DEFAULT_INSTALL_MISC_DIR}" PATH "Prefix installation path for miscellaneous files")
 mark_as_advanced(TGUI_MISC_INSTALL_PREFIX)
@@ -77,10 +88,6 @@ if (TGUI_INSTALL_PKGCONFIG_FILES)
 
     configure_file("pkgconfig/tgui.pc.in" "pkgconfig/tgui.pc" @ONLY)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pkgconfig/tgui.pc" DESTINATION "${TGUI_PKGCONFIG_INSTALL_PREFIX}")
-endif()
-
-if(TGUI_USE_CPP17)
-    message(WARNING "The library is being build with c++17 features. Keep in mind that you MUST define TGUI_USE_CPP17 in the project using the library as well.")
 endif()
 
 # Define an option for choosing between static and dynamic C runtime
@@ -142,7 +149,12 @@ if(TGUI_OS_ANDROID)
     endif()
 
     # We install libs in a subdirectory named after the ABI (e.g. lib/armeabi/libtgui.so)
-    set(LIB_SUFFIX "/${CMAKE_ANDROID_ARCH_ABI}")
+    set(CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_LIBDIR}/${CMAKE_ANDROID_ARCH_ABI}")
+endif()
+
+# Add an option to choose whether PDB debug symbols should be generated for Visual Studio
+if(TGUI_COMPILER_MSVC)
+    tgui_set_option(TGUI_GENERATE_PDB TRUE BOOL "True to generate PDB debug symbols, FALSE otherwise.")
 endif()
 
 # Apply the TGUI_USE_STATIC_STD_LIBS option on windows when using VC++
@@ -199,22 +211,24 @@ if(NOT TGUI_SHARED_LIBS)
     endif()
 endif()
 
-# Find sfml
-if(TGUI_OS_WINDOWS AND TGUI_COMPILER_MSVC) # Also look for the main component when using Visual Studio
-    find_package(SFML 2 COMPONENTS main graphics window system)
-elseif(TGUI_OS_ANDROID)  # Search for SFML in the android NDK (if no other directory is specified)
-    find_package(SFML 2 COMPONENTS graphics window system PATHS "${CMAKE_ANDROID_NDK}/sources/third_party/sfml/lib/${CMAKE_ANDROID_ARCH_ABI}/cmake/SFML")
-elseif(TGUI_OS_IOS)  # Use the find_host_package macro from the toolchain on iOS
-    find_host_package(SFML 2 COMPONENTS main graphics window system)
-else()
-    find_package(SFML 2 COMPONENTS graphics window system)
-endif()
+# Find sfml if not build in same project
+if(NOT TARGET sfml-graphics)
+    if(TGUI_OS_WINDOWS AND TGUI_COMPILER_MSVC) # Also look for the main component when using Visual Studio
+        find_package(SFML 2 COMPONENTS main graphics window system)
+    elseif(TGUI_OS_ANDROID)  # Search for SFML in the android NDK (if no other directory is specified)
+        find_package(SFML 2 COMPONENTS graphics window system PATHS "${CMAKE_ANDROID_NDK}/sources/third_party/sfml/lib/${CMAKE_ANDROID_ARCH_ABI}/cmake/SFML")
+    elseif(TGUI_OS_IOS)  # Use the find_host_package macro from the toolchain on iOS
+        find_host_package(SFML 2 COMPONENTS main graphics window system)
+    else()
+        find_package(SFML 2 COMPONENTS graphics window system)
+    endif()
 
-# find_package couldn't find SFML
-if(NOT SFML_FOUND)
-    set(SFML_DIR "" CACHE PATH "Path to SFMLConfig.cmake")
-    set(SFML_ROOT "" CACHE PATH "SFML root directory")
-    message(FATAL_ERROR "CMake couldn't find SFML.\nEither set SFML_DIR to the directory containing SFMLConfig.cmake or set the SFML_ROOT entry to SFML's root directory (containing \"include\" and \"lib\" directories).")
+    # find_package couldn't find SFML
+    if(NOT SFML_FOUND)
+        set(SFML_DIR "" CACHE PATH "Path to SFMLConfig.cmake")
+        set(SFML_ROOT "" CACHE PATH "SFML root directory")
+        message(FATAL_ERROR "CMake couldn't find SFML.\nEither set SFML_DIR to the directory containing SFMLConfig.cmake or set the SFML_ROOT entry to SFML's root directory (containing \"include\" and \"lib\" directories).")
+    endif()
 endif()
 
 # Set the path for the libraries
@@ -253,9 +267,16 @@ if(NOT TGUI_BUILD_FRAMEWORK)
             DESTINATION .
             COMPONENT devel
             FILES_MATCHING PATTERN "*.hpp" PATTERN "*.inl")
+
+    if(TGUI_GENERATE_PDB)
+        install(DIRECTORY "${PROJECT_BINARY_DIR}/lib"
+                DESTINATION .
+                COMPONENT devel
+                FILES_MATCHING PATTERN "*.pdb")
+    endif()
 endif()
 
 # Install miscellaneous files
-install(FILES license.txt DESTINATION ${TGUI_MISC_INSTALL_PREFIX})
-install(FILES README.md DESTINATION ${TGUI_MISC_INSTALL_PREFIX})
+install(FILES license.txt DESTINATION ${CMAKE_INSTALL_DOCDIR})
+install(FILES README.md DESTINATION ${CMAKE_INSTALL_DOCDIR})
 install(DIRECTORY themes DESTINATION "${TGUI_MISC_INSTALL_PREFIX}")

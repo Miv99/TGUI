@@ -42,6 +42,11 @@ TEST_CASE("[ListView]")
         REQUIRE_NOTHROW(listView->connect("DoubleClicked", [](int){}));
         REQUIRE_NOTHROW(listView->connect("DoubleClicked", [](tgui::Widget::Ptr, std::string){}));
         REQUIRE_NOTHROW(listView->connect("DoubleClicked", [](tgui::Widget::Ptr, std::string, int){}));
+
+        REQUIRE_NOTHROW(listView->connect("HeaderClicked", [](){}));
+        REQUIRE_NOTHROW(listView->connect("HeaderClicked", [](int){}));
+        REQUIRE_NOTHROW(listView->connect("HeaderClicked", [](tgui::Widget::Ptr, std::string){}));
+        REQUIRE_NOTHROW(listView->connect("HeaderClicked", [](tgui::Widget::Ptr, std::string, int){}));
     }
 
     SECTION("WidgetType")
@@ -174,6 +179,35 @@ TEST_CASE("[ListView]")
         REQUIRE(!listView->changeSubItem(3, 1, {"d,2"}));
         REQUIRE(listView->getItemRows() == std::vector<std::vector<sf::String>>{{"1,1", "a,2"}, {"b,1", ""}, {"c,1", "c,2"}});
     }
+    
+    SECTION("Sort")
+    {
+        listView->addColumn("Col 1");
+        listView->addColumn("Col 2");
+        listView->addColumn("Col 3");
+
+        std::vector<std::vector<sf::String>> items = {{"300"}, {"200", "-5", "20"}, {"1000", "7"}};
+        listView->addMultipleItems(items);
+
+        auto cmp1 = [](const sf::String& a, const sf::String& b) { return a < b; };
+        auto convert = [](const std::string& s)
+        {
+            return s.empty() ? 0 : std::stoi(s);
+        };
+        auto cmp2 = [&convert](const sf::String& a, const sf::String& b) { return convert(a) > convert(b); };
+
+        listView->sort(0, cmp1);
+        REQUIRE(listView->getItemRows() == std::vector<std::vector<sf::String>>{{"1000", "7", ""}, {"200", "-5", "20"}, {"300", "", ""}});
+
+        listView->sort(5, cmp1);
+        REQUIRE(listView->getItemRows() == std::vector<std::vector<sf::String>>{{"1000", "7", ""}, {"200", "-5", "20"}, {"300", "", ""}});
+        
+        listView->sort(1, cmp2);
+        REQUIRE(listView->getItemRows() == std::vector<std::vector<sf::String>>{{"1000", "7", ""}, {"300", "", ""}, {"200", "-5", "20"}});
+
+        listView->sort(2, cmp2);
+        REQUIRE(listView->getItemRows() == std::vector<std::vector<sf::String>>{{"200", "-5", "20"}, {"1000", "7", ""}, {"300", "", ""}});
+    }
 
     SECTION("Returned item rows depend on columns")
     {
@@ -200,6 +234,27 @@ TEST_CASE("[ListView]")
         REQUIRE(listView->getItemRows() == std::vector<std::vector<sf::String>>{{"1,1", "1,2", "1,3", ""}, {"2,1", "2,2", "", ""}});
     }
 
+    SECTION("Returned item cells")
+    {
+        listView->addItem({ "1,1", "1,2", "1,3" });
+        listView->addItem({ "2,1", "2,2" });
+
+        REQUIRE(listView->getItemCell(0, 0) == "1,1");
+        REQUIRE(listView->getItemCell(0, 1) == "");
+        REQUIRE(listView->getItemRows() == std::vector<std::vector<sf::String>>{ {"1,1"}, { "2,1" }});
+
+        listView->addColumn("Col 1");
+        REQUIRE(listView->getItemCell(1, 0) == "2,1");
+        REQUIRE(listView->getItemCell(0, 1) == "");
+        REQUIRE(listView->getItemCell(2, 1) == "");
+        REQUIRE(listView->getItemRows() == std::vector<std::vector<sf::String>>{ {"1,1"}, { "2,1" }});
+
+        listView->addColumn("Col 2");
+        REQUIRE(listView->getItemCell(1, 1) == "2,2");
+        REQUIRE(listView->getItemCell(0, 2) == "");
+        REQUIRE(listView->getItemRows() == std::vector<std::vector<sf::String>>{ {"1,1", "1,2"}, { "2,1", "2,2" }});
+    }
+
     SECTION("Selecting items")
     {
         listView->addItem("1,1");
@@ -211,8 +266,20 @@ TEST_CASE("[ListView]")
         listView->setSelectedItem(2);
         REQUIRE(listView->getSelectedItemIndex() == 2);
 
-        listView->deselectItem();
+        listView->deselectItems();
         REQUIRE(listView->getSelectedItemIndex() == -1);
+
+        listView->setMultiSelect(true);
+        REQUIRE(listView->getSelectedItemIndices() == std::set<std::size_t>{ });
+        listView->setSelectedItems({ 0, 2 });
+        REQUIRE(listView->getSelectedItemIndices() == std::set<std::size_t>{ 0, 2 });
+
+        listView->setMultiSelect(false);
+        REQUIRE(listView->getSelectedItemIndices() == std::set<std::size_t>{ 0 });
+        listView->setSelectedItems({ 1, 2 });
+        REQUIRE(listView->getSelectedItemIndices() == std::set<std::size_t>{ 1 });
+        listView->deselectItems();
+        REQUIRE(listView->getSelectedItemIndices() == std::set<std::size_t>{ });
     }
 
     SECTION("Header height")
@@ -376,6 +443,15 @@ TEST_CASE("[ListView]")
         REQUIRE(listView->getHorizontalScrollbarPolicy() == tgui::Scrollbar::Policy::Never);
     }
 
+    SECTION("MultiSelect")
+    {
+        REQUIRE(!listView->getMultiSelect());
+        listView->setMultiSelect(true);
+        REQUIRE(listView->getMultiSelect());
+        listView->setMultiSelect(false);
+        REQUIRE(!listView->getMultiSelect());
+    }
+
     SECTION("Events / Signals")
     {
         auto root = std::make_shared<tgui::GuiContainer>();
@@ -389,24 +465,24 @@ TEST_CASE("[ListView]")
         auto mouseMoved = [root,container](sf::Vector2i pos){
             sf::Event event;
             event.type = sf::Event::MouseMoved;
-            event.mouseMove.x = pos.x + container->getPosition().x;
-            event.mouseMove.y = pos.y + container->getPosition().y;
+            event.mouseMove.x = pos.x + static_cast<int>(container->getPosition().x);
+            event.mouseMove.y = pos.y + static_cast<int>(container->getPosition().y);
             root->handleEvent(event);
         };
         auto mousePressed = [root,container](sf::Vector2i pos, sf::Mouse::Button mouseButton = sf::Mouse::Left){
             sf::Event event;
             event.type = sf::Event::MouseButtonPressed;
             event.mouseButton.button = mouseButton;
-            event.mouseButton.x = pos.x + container->getPosition().x;
-            event.mouseButton.y = pos.y + container->getPosition().y;
+            event.mouseButton.x = pos.x + static_cast<int>(container->getPosition().x);
+            event.mouseButton.y = pos.y + static_cast<int>(container->getPosition().y);
             root->handleEvent(event);
         };
         auto mouseReleased = [root,container](sf::Vector2i pos, sf::Mouse::Button mouseButton = sf::Mouse::Left){
             sf::Event event;
             event.type = sf::Event::MouseButtonReleased;
             event.mouseButton.button = mouseButton;
-            event.mouseButton.x = pos.x + container->getPosition().x;
-            event.mouseButton.y = pos.y + container->getPosition().y;
+            event.mouseButton.x = pos.x + static_cast<int>(container->getPosition().x);
+            event.mouseButton.y = pos.y + static_cast<int>(container->getPosition().y);
             root->handleEvent(event);
         };
 
@@ -476,18 +552,31 @@ TEST_CASE("[ListView]")
 
         SECTION("Click on header")
         {
+            int lastHeaderIndex = -1;
+            unsigned int headerClickCount = 0;
+            listView->connect("HeaderClicked", [&](int index){ lastHeaderIndex = index; ++headerClickCount; });
+
             listView->setHeaderHeight(30);
             listView->addColumn("Col 1", 50);
             listView->addColumn("Col 2", 50);
 
+            mousePressed({70, 35});
+            mouseReleased({70, 35});
+            REQUIRE(listView->getSelectedItemIndex() == -1);
+            REQUIRE(headerClickCount == 1);
+            REQUIRE(lastHeaderIndex == 1);
+
             mousePressed({40, 35});
             mouseReleased({40, 35});
             REQUIRE(listView->getSelectedItemIndex() == -1);
+            REQUIRE(headerClickCount == 2);
+            REQUIRE(lastHeaderIndex == 0);
 
             listView->setHeaderVisible(false);
             mousePressed({40, 35});
             mouseReleased({40, 35});
             REQUIRE(listView->getSelectedItemIndex() == 0);
+            REQUIRE(headerClickCount == 2);
         }
 
         SECTION("Right click")
@@ -577,7 +666,7 @@ TEST_CASE("[ListView]")
             mouseReleased({40, 110});
             REQUIRE(listView->getSelectedItemIndex() == 2);
 
-            listView->deselectItem();
+            listView->deselectItems();
             listView->addColumn("Col 3", 50);
 
             mousePressed({40, 110});

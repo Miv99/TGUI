@@ -431,13 +431,6 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    unsigned int ListBox::getTextSize() const
-    {
-        return m_textSize;
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
     void ListBox::setMaximumItems(std::size_t maximumItems)
     {
         // Set the new limit
@@ -542,15 +535,16 @@ namespace tgui
                 else
                     updateHoveringItem(-1);
 
-                if (m_hoveringItem >= 0)
-                    onMousePress.emit(this, m_items[m_hoveringItem].getString(), m_itemIds[m_hoveringItem]);
-
                 if (m_selectedItem != m_hoveringItem)
                 {
                     m_possibleDoubleClick = false;
 
                     updateSelectedItem(m_hoveringItem);
                 }
+
+                // Call the MousePress event after the item has already been changed, so that selected item represents the clicked item
+                if (m_selectedItem >= 0)
+                    onMousePress.emit(this, m_items[m_selectedItem].getString(), m_itemIds[m_selectedItem], m_selectedItem);
             }
         }
     }
@@ -562,7 +556,7 @@ namespace tgui
         if (m_mouseDown && !m_scroll->isMouseDown())
         {
             if (m_selectedItem >= 0)
-                onMouseRelease.emit(this, m_items[m_selectedItem].getString(), m_itemIds[m_selectedItem]);
+                onMouseRelease.emit(this, m_items[m_selectedItem].getString(), m_itemIds[m_selectedItem], m_selectedItem);
 
             // Check if you double-clicked
             if (m_possibleDoubleClick)
@@ -570,7 +564,7 @@ namespace tgui
                 m_possibleDoubleClick = false;
 
                 if (m_selectedItem >= 0)
-                    onDoubleClick.emit(this, m_items[m_selectedItem].getString(), m_itemIds[m_selectedItem]);
+                    onDoubleClick.emit(this, m_items[m_selectedItem].getString(), m_itemIds[m_selectedItem], m_selectedItem);
             }
             else // This is the first click
             {
@@ -890,20 +884,21 @@ namespace tgui
         if (node->propertyValuePairs["autoscroll"])
             setAutoScroll(Deserializer::deserialize(ObjectConverter::Type::Bool, node->propertyValuePairs["autoscroll"]->value).getBool());
         if (node->propertyValuePairs["textsize"])
-            setTextSize(tgui::stoi(node->propertyValuePairs["textsize"]->value));
+            setTextSize(strToInt(node->propertyValuePairs["textsize"]->value));
         if (node->propertyValuePairs["itemheight"])
-            setItemHeight(tgui::stoi(node->propertyValuePairs["itemheight"]->value));
+            setItemHeight(strToInt(node->propertyValuePairs["itemheight"]->value));
         if (node->propertyValuePairs["maximumitems"])
-            setMaximumItems(tgui::stoi(node->propertyValuePairs["maximumitems"]->value));
+            setMaximumItems(strToInt(node->propertyValuePairs["maximumitems"]->value));
         if (node->propertyValuePairs["selecteditemindex"])
-            setSelectedItemByIndex(tgui::stoi(node->propertyValuePairs["selecteditemindex"]->value));
+            setSelectedItemByIndex(strToInt(node->propertyValuePairs["selecteditemindex"]->value));
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     Vector2f ListBox::getInnerSize() const
     {
-        return {getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight(), getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom()};
+        return {std::max(0.f, getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight()),
+                std::max(0.f, getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom())};
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -979,9 +974,9 @@ namespace tgui
 
             m_selectedItem = item;
             if (m_selectedItem >= 0)
-                onItemSelect.emit(this, m_items[m_selectedItem].getString(), m_itemIds[m_selectedItem]);
+                onItemSelect.emit(this, m_items[m_selectedItem].getString(), m_itemIds[m_selectedItem], m_selectedItem);
             else
-                onItemSelect.emit(this, "", "");
+                onItemSelect.emit(this, "", "", m_selectedItem);
 
             updateSelectedAndHoveringItemColorsAndStyle();
         }

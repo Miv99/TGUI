@@ -36,7 +36,7 @@ namespace tgui
 {
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef TGUI_USE_CPP17
+#if TGUI_COMPILED_WITH_CPP_VER < 17
     const std::string EditBox::Validator::All   = ".*";
     const std::string EditBox::Validator::Int   = "[+-]?[0-9]*";
     const std::string EditBox::Validator::UInt  = "[0-9]*";
@@ -1180,9 +1180,9 @@ namespace tgui
         if (node->propertyValuePairs["defaulttext"])
             setDefaultText(Deserializer::deserialize(ObjectConverter::Type::String, node->propertyValuePairs["defaulttext"]->value).getString());
         if (node->propertyValuePairs["textsize"])
-            setTextSize(tgui::stoi(node->propertyValuePairs["textsize"]->value));
+            setTextSize(strToInt(node->propertyValuePairs["textsize"]->value));
         if (node->propertyValuePairs["maximumcharacters"])
-            setMaximumCharacters(tgui::stoi(node->propertyValuePairs["maximumcharacters"]->value));
+            setMaximumCharacters(strToInt(node->propertyValuePairs["maximumcharacters"]->value));
         if (node->propertyValuePairs["textwidthlimited"])
             limitTextWidth(Deserializer::deserialize(ObjectConverter::Type::Bool, node->propertyValuePairs["textwidthlimited"]->value).getBool());
         if (node->propertyValuePairs["readonly"])
@@ -1230,8 +1230,8 @@ namespace tgui
 
     Vector2f EditBox::getInnerSize() const
     {
-        return {getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight(),
-                getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom()};
+        return {std::max(0.f, getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight()),
+                std::max(0.f, getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom())};
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

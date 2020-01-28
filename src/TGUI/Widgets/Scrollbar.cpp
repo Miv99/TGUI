@@ -209,6 +209,24 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    void Scrollbar::setVerticalScroll(bool vertical)
+    {
+        if (m_verticalScroll == vertical)
+            return;
+
+        m_verticalScroll = vertical;
+        setSize(getSize().y, getSize().x);
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    bool Scrollbar::getVerticalScroll() const
+    {
+        return m_verticalScroll;
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     float Scrollbar::getDefaultWidth()
     {
         if (m_spriteTrack.isSet())
@@ -600,9 +618,9 @@ namespace tgui
 
     void Scrollbar::updateSize()
     {
-        if (getSize().x <= getSize().y)
+        if (getSize().x < getSize().y)
             m_verticalScroll = true;
-        else
+        else if (getSize().x > getSize().y)
             m_verticalScroll = false;
 
         bool textured = false;
@@ -883,13 +901,13 @@ namespace tgui
         Widget::load(node, renderers);
 
         if (node->propertyValuePairs["viewportsize"])
-            setViewportSize(tgui::stoi(node->propertyValuePairs["viewportsize"]->value));
+            setViewportSize(strToInt(node->propertyValuePairs["viewportsize"]->value));
         if (node->propertyValuePairs["maximum"])
-            setMaximum(tgui::stoi(node->propertyValuePairs["maximum"]->value));
+            setMaximum(strToInt(node->propertyValuePairs["maximum"]->value));
         if (node->propertyValuePairs["value"])
-            setValue(tgui::stoi(node->propertyValuePairs["value"]->value));
+            setValue(strToInt(node->propertyValuePairs["value"]->value));
         if (node->propertyValuePairs["scrollamount"])
-            setScrollAmount(tgui::stoi(node->propertyValuePairs["scrollamount"]->value));
+            setScrollAmount(strToInt(node->propertyValuePairs["scrollamount"]->value));
         if (node->propertyValuePairs["autohide"])
             setAutoHide(Deserializer::deserialize(ObjectConverter::Type::Bool, node->propertyValuePairs["autohide"]->value).getBool());
     }

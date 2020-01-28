@@ -101,7 +101,11 @@ namespace tgui
 
         m_bordersCached.updateParentSize(getSize());
 
-        m_verticalScroll = (getSize().y >= getSize().x);
+        if (getSize().x < getSize().y)
+            m_verticalScroll = true;
+        else if (getSize().x > getSize().y)
+            m_verticalScroll = false;
+
         if (m_verticalScroll)
         {
             m_spriteArrowUp.setRotation(0);
@@ -209,6 +213,24 @@ namespace tgui
     float SpinButton::getStep() const
     {
         return m_step;
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    void SpinButton::setVerticalScroll(bool vertical)
+    {
+        if (m_verticalScroll == vertical)
+            return;
+
+        m_verticalScroll = vertical;
+        setSize(getSize().y, getSize().x);
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    bool SpinButton::getVerticalScroll() const
+    {
+        return m_verticalScroll;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -393,13 +415,13 @@ namespace tgui
         Widget::load(node, renderers);
 
         if (node->propertyValuePairs["minimum"])
-            setMinimum(tgui::stof(node->propertyValuePairs["minimum"]->value));
+            setMinimum(strToFloat(node->propertyValuePairs["minimum"]->value));
         if (node->propertyValuePairs["maximum"])
-            setMaximum(tgui::stof(node->propertyValuePairs["maximum"]->value));
+            setMaximum(strToFloat(node->propertyValuePairs["maximum"]->value));
         if (node->propertyValuePairs["value"])
-            setValue(tgui::stof(node->propertyValuePairs["value"]->value));
+            setValue(strToFloat(node->propertyValuePairs["value"]->value));
         if (node->propertyValuePairs["step"])
-            setStep(tgui::stof(node->propertyValuePairs["step"]->value));
+            setStep(strToFloat(node->propertyValuePairs["step"]->value));
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

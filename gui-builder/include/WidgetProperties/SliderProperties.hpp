@@ -35,15 +35,17 @@ struct SliderProperties : WidgetProperties
     {
         auto slider = std::dynamic_pointer_cast<tgui::Slider>(widget);
         if (property == "Minimum")
-            slider->setMinimum(tgui::stof(value));
+            slider->setMinimum(tgui::strToFloat(value));
         else if (property == "Maximum")
-            slider->setMaximum(tgui::stof(value));
+            slider->setMaximum(tgui::strToFloat(value));
         else if (property == "Value")
-            slider->setValue(tgui::stof(value));
+            slider->setValue(tgui::strToFloat(value));
         else if (property == "Step")
-            slider->setStep(tgui::stof(value));
+            slider->setStep(tgui::strToFloat(value));
         else if (property == "InvertedDirection")
             slider->setInvertedDirection(parseBoolean(value, false));
+        else if (property == "VerticalScroll")
+            slider->setVerticalScroll(parseBoolean(value, true));
         else
             WidgetProperties::updateProperty(widget, property, value);
     }
@@ -57,6 +59,7 @@ struct SliderProperties : WidgetProperties
         pair.first["Value"] = {"Float", tgui::to_string(slider->getValue())};
         pair.first["Step"] = {"Float", tgui::to_string(slider->getStep())};
         pair.first["InvertedDirection"] = {"Bool", tgui::to_string(slider->getInvertedDirection())};
+        pair.first["VerticalScroll"] = {"Bool", tgui::to_string(slider->getVerticalScroll())};
 
         const auto renderer = slider->getSharedRenderer();
         pair.second["Borders"] = {"Outline", tgui::Serializer::serialize(renderer->getBorders())};

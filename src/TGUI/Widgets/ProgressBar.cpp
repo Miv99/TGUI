@@ -399,15 +399,15 @@ namespace tgui
         Widget::load(node, renderers);
 
         if (node->propertyValuePairs["minimum"])
-            setMinimum(tgui::stoi(node->propertyValuePairs["minimum"]->value));
+            setMinimum(strToInt(node->propertyValuePairs["minimum"]->value));
         if (node->propertyValuePairs["maximum"])
-            setMaximum(tgui::stoi(node->propertyValuePairs["maximum"]->value));
+            setMaximum(strToInt(node->propertyValuePairs["maximum"]->value));
         if (node->propertyValuePairs["value"])
-            setValue(tgui::stoi(node->propertyValuePairs["value"]->value));
+            setValue(strToInt(node->propertyValuePairs["value"]->value));
         if (node->propertyValuePairs["text"])
             setText(Deserializer::deserialize(ObjectConverter::Type::String, node->propertyValuePairs["text"]->value).getString());
         if (node->propertyValuePairs["textsize"])
-            setTextSize(tgui::stoi(node->propertyValuePairs["textsize"]->value));
+            setTextSize(strToInt(node->propertyValuePairs["textsize"]->value));
 
         if (node->propertyValuePairs["filldirection"])
         {
@@ -429,8 +429,8 @@ namespace tgui
 
     Vector2f ProgressBar::getInnerSize() const
     {
-        return {getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight(),
-                getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom()};
+        return {std::max(0.f, getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight()),
+                std::max(0.f, getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom())};
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

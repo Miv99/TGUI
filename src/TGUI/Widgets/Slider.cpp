@@ -104,7 +104,7 @@ namespace tgui
 
         if (getSize().x < getSize().y)
             m_verticalScroll = true;
-        else
+        else if (getSize().x > getSize().y)
             m_verticalScroll = false;
 
         if (m_spriteTrack.isSet() && m_spriteThumb.isSet())
@@ -290,6 +290,24 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    void Slider::setVerticalScroll(bool vertical)
+    {
+        if (m_verticalScroll == vertical)
+            return;
+
+        m_verticalScroll = vertical;
+        setSize(getSize().y, getSize().x);
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    bool Slider::getVerticalScroll() const
+    {
+        return m_verticalScroll;
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     void Slider::setInvertedDirection(bool invertedDirection)
     {
         m_invertedDirection = invertedDirection;
@@ -305,13 +323,15 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void Slider::setChangeValueOnScroll(bool changeValueOnScroll) {
+    void Slider::setChangeValueOnScroll(bool changeValueOnScroll)
+    {
         m_changeValueOnScroll = changeValueOnScroll;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    bool Slider::getChangeValueOnScroll() const {
+    bool Slider::getChangeValueOnScroll() const
+    {
         return m_changeValueOnScroll;
     }
 
@@ -436,7 +456,7 @@ namespace tgui
         // Don't do anything when changing value on scroll is disabled
         if (!m_changeValueOnScroll)
             return false;
-        
+
         if (m_invertedDirection)
             delta = -delta;
 
@@ -570,13 +590,13 @@ namespace tgui
         Widget::load(node, renderers);
         
         if (node->propertyValuePairs["minimum"])
-            setMinimum(tgui::stof(node->propertyValuePairs["minimum"]->value));
+            setMinimum(strToFloat(node->propertyValuePairs["minimum"]->value));
         if (node->propertyValuePairs["maximum"])
-            setMaximum(tgui::stof(node->propertyValuePairs["maximum"]->value));
+            setMaximum(strToFloat(node->propertyValuePairs["maximum"]->value));
         if (node->propertyValuePairs["value"])
-            setValue(tgui::stof(node->propertyValuePairs["value"]->value));
+            setValue(strToFloat(node->propertyValuePairs["value"]->value));
         if (node->propertyValuePairs["step"])
-            setStep(tgui::stof(node->propertyValuePairs["step"]->value));
+            setStep(strToFloat(node->propertyValuePairs["step"]->value));
         if (node->propertyValuePairs["inverteddirection"])
             setInvertedDirection(Deserializer::deserialize(ObjectConverter::Type::Bool, node->propertyValuePairs["inverteddirection"]->value).getBool());
         if (node->propertyValuePairs["changevalueonscroll"])
@@ -587,8 +607,8 @@ namespace tgui
 
     Vector2f Slider::getInnerSize() const
     {
-        return {getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight(),
-                getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom()};
+        return {std::max(0.f, getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight()),
+                std::max(0.f, getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom())};
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -12,6 +12,8 @@ set(TGUI_SRC
     ObjectConverter.cpp
     Sprite.cpp
     Signal.cpp
+    String.cpp
+    SignalManager.cpp
     SvgImage.cpp
     TextStyle.cpp
     Text.cpp
@@ -146,6 +148,13 @@ else()
     set_target_properties(tgui PROPERTIES RELWITHDEBINFO_POSTFIX -s)
 endif()
 
+# Define either TGUI_STATIC or TGUI_DYNAMIC
+if(TGUI_SHARED_LIBS)
+    target_compile_definitions(tgui PUBLIC TGUI_DYNAMIC)
+else()
+    target_compile_definitions(tgui PUBLIC TGUI_STATIC)
+endif()
+
 tgui_set_global_compile_flags(tgui)
 tgui_set_stdlib(tgui)
 
@@ -186,12 +195,34 @@ endif()
 
 # Enable automatic reference counting on iOS
 if(TGUI_OS_IOS)
-    set_target_properties(${target} PROPERTIES XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES)
+    set_target_properties(tgui PROPERTIES XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES)
 endif()
 
 # Hide public symbols by default (exported ones are explicitly marked)
 if(NOT TGUI_OS_WINDOWS)
     target_compile_options(tgui PRIVATE -fvisibility=hidden)
+endif()
+
+# For Visual Studio on Windows, export debug symbols (PDB files) to lib directory
+if(TGUI_GENERATE_PDB)
+    # PDB files are only generated in Debug and RelWithDebInfo configurations, find out which one
+    if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+        set(TGUI_PDB_POSTFIX "-d")
+    else()
+        set(TGUI_PDB_POSTFIX "")
+    endif()
+
+    if(TGUI_SHARED_LIBS)
+        # DLLs export debug symbols in the linker PDB (the compiler PDB is an intermediate file)
+        set_target_properties(tgui PROPERTIES
+                              PDB_NAME "tgui${TGUI_PDB_POSTFIX}"
+                              PDB_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
+    else()
+        # Static libraries have no linker PDBs, thus the compiler PDBs are relevant
+        set_target_properties(tgui PROPERTIES
+                              COMPILE_PDB_NAME "tgui-s${TGUI_PDB_POSTFIX}"
+                              COMPILE_PDB_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
+    endif()
 endif()
 
 # Build frameworks or dylibs
@@ -236,10 +267,10 @@ endif()
 
 # Install library
 install(TARGETS tgui EXPORT TGUIConfigExport
-        RUNTIME DESTINATION bin COMPONENT bin
-        LIBRARY DESTINATION lib${LIB_SUFFIX} COMPONENT bin
-        ARCHIVE DESTINATION lib${LIB_SUFFIX} COMPONENT devel
-        FRAMEWORK DESTINATION . COMPONENT devel
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT bin
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT bin
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT devel
+        FRAMEWORK DESTINATION "." COMPONENT bin
 )
 
 # Generate the TGUIConfig.cmake file

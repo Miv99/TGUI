@@ -262,13 +262,6 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    unsigned int ChatBox::getTextSize() const
-    {
-        return m_textSize;
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
     void ChatBox::setTextColor(Color color)
     {
         m_textColor = color;
@@ -580,13 +573,13 @@ namespace tgui
         Widget::load(node, renderers);
 
         if (node->propertyValuePairs["textsize"])
-            setTextSize(tgui::stoi(node->propertyValuePairs["textsize"]->value));
+            setTextSize(strToInt(node->propertyValuePairs["textsize"]->value));
         if (node->propertyValuePairs["textcolor"])
             setTextColor(Deserializer::deserialize(ObjectConverter::Type::Color, node->propertyValuePairs["textcolor"]->value).getColor());
         if (node->propertyValuePairs["textstyle"])
             setTextStyle(Deserializer::deserialize(ObjectConverter::Type::TextStyle, node->propertyValuePairs["textstyle"]->value).getTextStyle());
         if (node->propertyValuePairs["linelimit"])
-            setLineLimit(tgui::stoi(node->propertyValuePairs["linelimit"]->value));
+            setLineLimit(strToInt(node->propertyValuePairs["linelimit"]->value));
 
         for (const auto& childNode : node->children)
         {
@@ -619,8 +612,8 @@ namespace tgui
 
     Vector2f ChatBox::getInnerSize() const
     {
-        return {getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight(),
-                getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom()};
+        return {std::max(0.f, getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight()),
+                std::max(0.f, getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom())};
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

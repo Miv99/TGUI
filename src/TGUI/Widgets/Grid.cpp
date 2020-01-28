@@ -537,7 +537,7 @@ namespace tgui
 
             for (unsigned int i = 0; i < elements.size(); ++i)
             {
-                std::string str = elements[i].toAnsiString();
+                std::string str = elements[i];
 
                 // Remove quotes
                 if ((str.size() >= 2) && (str[0] == '"') && (str[str.size()-1] == '"'))
@@ -561,14 +561,14 @@ namespace tgui
                 if (pos == std::string::npos)
                     throw Exception{"Failed to parse 'GridWidgets' property. Expected list values to be in the form of '\"(row, column, (padding), alignment)\"'. Missing comma after row."};
 
-                row = tgui::stoi(str.substr(index, pos - index));
+                row = strToInt(str.substr(index, pos - index));
                 index = pos + 1;
 
                 pos = str.find(',', index);
                 if (pos == std::string::npos)
                     throw Exception{"Failed to parse 'GridWidgets' property. Expected list values to be in the form of '\"(row, column, (padding), alignment)\"'. Missing comma after column."};
 
-                col = tgui::stoi(str.substr(index, pos - index));
+                col = strToInt(str.substr(index, pos - index));
                 index = pos + 1;
 
                 if (row < 0 || col < 0)

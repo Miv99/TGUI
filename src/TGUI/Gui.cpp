@@ -38,7 +38,7 @@
     #define NOMB
     #define VC_EXTRALEAN
     #define WIN32_LEAN_AND_MEAN
-    #include <Windows.h>
+    #include <windows.h>
 #endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -330,12 +330,19 @@ namespace tgui
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    const std::vector<sf::String>& Gui::getWidgetNames() const
+#ifndef TGUI_REMOVE_DEPRECATED_CODE
+    const std::vector<sf::String> Gui::getWidgetNames() const
     {
+#if defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
         return m_container->getWidgetNames();
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
     }
-
+#endif
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     void Gui::add(const Widget::Ptr& widgetPtr, const sf::String& widgetName)
@@ -365,19 +372,33 @@ namespace tgui
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+#ifndef TGUI_REMOVE_DEPRECATED_CODE
     bool Gui::setWidgetName(const Widget::Ptr& widget, const std::string& name)
     {
+#if defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
         return m_container->setWidgetName(widget, name);
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     std::string Gui::getWidgetName(const Widget::Ptr& widget) const
     {
+#if defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
         return m_container->getWidgetName(widget);
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
     }
-
+#endif
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     void Gui::focusNextWidget()
@@ -422,9 +443,16 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void Gui::loadWidgetsFromFile(const std::string& filename)
+    void Gui::setTextSize(unsigned int size)
     {
-        m_container->loadWidgetsFromFile(filename);
+        m_container->setTextSize(size);
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    void Gui::loadWidgetsFromFile(const std::string& filename, bool replaceExisting)
+    {
+        m_container->loadWidgetsFromFile(filename, replaceExisting);
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -436,16 +464,16 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void Gui::loadWidgetsFromStream(std::stringstream& stream)
+    void Gui::loadWidgetsFromStream(std::stringstream& stream, bool replaceExisting)
     {
-        m_container->loadWidgetsFromStream(stream);
+        m_container->loadWidgetsFromStream(stream, replaceExisting);
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void Gui::loadWidgetsFromStream(std::stringstream&& stream)
+    void Gui::loadWidgetsFromStream(std::stringstream&& stream, bool replaceExisting)
     {
-        loadWidgetsFromStream(stream);
+        loadWidgetsFromStream(stream, replaceExisting);
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -465,7 +493,7 @@ namespace tgui
         if (m_tooltipPossible)
         {
             m_tooltipTime += elapsedTime;
-            if (m_tooltipTime >= ToolTip::getTimeToDisplay())
+            if (m_tooltipTime >= ToolTip::getInitialDelay())
             {
                 Widget::Ptr tooltip = m_container->askToolTip(m_lastMousePos);
                 if (tooltip)

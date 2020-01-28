@@ -141,13 +141,6 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    unsigned int Label::getTextSize() const
-    {
-        return m_textSize;
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
     void Label::setHorizontalAlignment(HorizontalAlignment alignment)
     {
         m_horizontalAlignment = alignment;
@@ -543,9 +536,9 @@ namespace tgui
         if (node->propertyValuePairs["text"])
             setText(Deserializer::deserialize(ObjectConverter::Type::String, node->propertyValuePairs["text"]->value).getString());
         if (node->propertyValuePairs["textsize"])
-            setTextSize(tgui::stoi(node->propertyValuePairs["textsize"]->value));
+            setTextSize(strToInt(node->propertyValuePairs["textsize"]->value));
         if (node->propertyValuePairs["maximumtextwidth"])
-            setMaximumTextWidth(tgui::stof(node->propertyValuePairs["maximumtextwidth"]->value));
+            setMaximumTextWidth(strToFloat(node->propertyValuePairs["maximumtextwidth"]->value));
         if (node->propertyValuePairs["autosize"])
             setAutoSize(Deserializer::deserialize(ObjectConverter::Type::Bool, node->propertyValuePairs["autosize"]->value).getBool());
 
@@ -622,7 +615,7 @@ namespace tgui
                                  m_paddingCached.getRight() + m_bordersCached.getRight(),
                                  m_paddingCached.getBottom() + m_bordersCached.getBottom()};
 
-        const auto lineCount = std::count(string.begin(), string.end(), '\n') + 1;
+        const auto lineCount = std::count(string.begin(), string.end(), static_cast<sf::Uint32>('\n')) + 1;
         float requiredTextHeight = lineCount * m_fontCached.getLineSpacing(m_textSize)
                                    + Text::calculateExtraVerticalSpace(m_fontCached, m_textSize, m_textStyleCached)
                                    + Text::getExtraVerticalPadding(m_textSize);
@@ -639,7 +632,7 @@ namespace tgui
 
                 string = Text::wordWrap(maxWidth, m_string, m_fontCached, m_textSize, m_textStyleCached & sf::Text::Bold);
 
-                const auto newLineCount = std::count(string.begin(), string.end(), '\n') + 1;
+                const auto newLineCount = std::count(string.begin(), string.end(), static_cast<sf::Uint32>('\n')) + 1;
                 requiredTextHeight = newLineCount * m_fontCached.getLineSpacing(m_textSize)
                                      + Text::calculateExtraVerticalSpace(m_fontCached, m_textSize, m_textStyleCached)
                                      + Text::getExtraVerticalPadding(m_textSize);
@@ -660,22 +653,22 @@ namespace tgui
         {
             newLinePos = string.find('\n', searchPosStart);
 
-            m_lines.emplace_back();
-            m_lines.back().setCharacterSize(getTextSize());
-            m_lines.back().setFont(m_fontCached);
-            m_lines.back().setStyle(m_textStyleCached);
-            m_lines.back().setColor(m_textColorCached);
-            m_lines.back().setOpacity(m_opacityCached);
-            m_lines.back().setOutlineColor(m_textOutlineColorCached);
-            m_lines.back().setOutlineThickness(m_textOutlineThicknessCached);
+            TGUI_EMPLACE_BACK(line, m_lines)
+            line.setCharacterSize(getTextSize());
+            line.setFont(m_fontCached);
+            line.setStyle(m_textStyleCached);
+            line.setColor(m_textColorCached);
+            line.setOpacity(m_opacityCached);
+            line.setOutlineColor(m_textOutlineColorCached);
+            line.setOutlineThickness(m_textOutlineThicknessCached);
 
             if (newLinePos != sf::String::InvalidPos)
-                m_lines.back().setString(string.substring(searchPosStart, newLinePos - searchPosStart));
+                line.setString(string.substring(searchPosStart, newLinePos - searchPosStart));
             else
-                m_lines.back().setString(string.substring(searchPosStart));
+                line.setString(string.substring(searchPosStart));
 
-            if (m_lines.back().getSize().x > width)
-                width = m_lines.back().getSize().x;
+            if (line.getSize().x > width)
+                width = line.getSize().x;
 
             searchPosStart = newLinePos + 1;
         }

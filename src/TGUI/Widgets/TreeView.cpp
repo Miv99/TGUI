@@ -263,7 +263,6 @@ namespace tgui
         m_hoveredItem                       {other.m_hoveredItem},
         m_itemHeight                        {other.m_itemHeight},
         m_requestedTextSize                 {other.m_requestedTextSize},
-        m_textSize                          {other.m_textSize},
         m_maxRight                          {other.m_maxRight},
         m_iconBounds                        {other.m_iconBounds},
         m_verticalScrollbar                 {other.m_verticalScrollbar},
@@ -314,7 +313,6 @@ namespace tgui
             std::swap(m_hoveredItem,                        temp.m_hoveredItem);
             std::swap(m_itemHeight,                         temp.m_itemHeight);
             std::swap(m_requestedTextSize,                  temp.m_requestedTextSize);
-            std::swap(m_textSize,                           temp.m_textSize);
             std::swap(m_maxRight,                           temp.m_maxRight);
             std::swap(m_iconBounds,                         temp.m_iconBounds);
             std::swap(m_verticalScrollbar,                  temp.m_verticalScrollbar);
@@ -552,7 +550,8 @@ namespace tgui
 
     Vector2f TreeView::getInnerSize() const
     {
-        return {getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight(), getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom()};
+        return {std::max(0.f, getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight()),
+                std::max(0.f, getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom())};
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -616,13 +615,6 @@ namespace tgui
             m_textSize = Text::findBestTextSize(m_fontCached, m_itemHeight * 0.8f);
 
         setTextSizeImpl(m_nodes, textSize);
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    unsigned int TreeView::getTextSize() const
-    {
-        return m_textSize;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1003,9 +995,9 @@ namespace tgui
         Widget::load(node, renderers);
 
         if (node->propertyValuePairs["itemheight"])
-            setItemHeight(tgui::stoi(node->propertyValuePairs["itemheight"]->value));
+            setItemHeight(strToInt(node->propertyValuePairs["itemheight"]->value));
         if (node->propertyValuePairs["textsize"])
-            setTextSize(tgui::stoi(node->propertyValuePairs["textsize"]->value));
+            setTextSize(strToInt(node->propertyValuePairs["textsize"]->value));
 
         loadItems(node, m_nodes, nullptr);
 

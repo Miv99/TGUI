@@ -27,6 +27,7 @@
 #define TGUI_VECTOR2F_HPP
 
 #include <TGUI/Global.hpp>
+#include <TGUI/String.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/System/Err.hpp>
 
@@ -41,7 +42,10 @@ namespace tgui
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// @brief Default constructor
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        TGUI_CONSTEXPR Vector2f() = default;
+        TGUI_CONSTEXPR Vector2f()
+        {
+            // Constructor isn't defined as "= default" because this leads to an IntelliSense error
+        }
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// @brief Constructor to create from X and Y values
@@ -98,8 +102,8 @@ namespace tgui
                 return;
             }
 
-            x = tgui::stof(trim(str.substr(0, commaPos)));
-            y = tgui::stof(trim(str.substr(commaPos + 1)));
+            x = strToFloat(trim(str.substr(0, commaPos)));
+            y = strToFloat(trim(str.substr(commaPos + 1)));
         }
 
 

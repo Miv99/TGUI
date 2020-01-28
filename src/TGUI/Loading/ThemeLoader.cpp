@@ -65,14 +65,14 @@ namespace tgui
             {
                 if (((pair.first.size() >= 7) && (toLower(pair.first.substr(0, 7)) == "texture")) || (pair.first == "font"))
                 {
-                    if (pair.second->value.isEmpty() || (pair.second->value == "null") || (pair.second->value == "nullptr"))
+                    if (pair.second->value.empty() || (pair.second->value == "null") || (pair.second->value == "nullptr"))
                         continue;
 
                     // Insert the path into the filename unless the filename is already an absolute path
                     if (pair.second->value[0] != '"')
                     {
                     #ifdef SFML_SYSTEM_WINDOWS
-                        if ((pair.second->value[0] != '/') && (pair.second->value[0] != '\\') && ((pair.second->value.getSize() <= 1) || (pair.second->value[1] != ':')))
+                        if ((pair.second->value[0] != '/') && (pair.second->value[0] != '\\') && ((pair.second->value.size() <= 1) || (pair.second->value[1] != ':')))
                     #else
                         if (pair.second->value[0] != '/')
                     #endif
@@ -80,15 +80,15 @@ namespace tgui
                     }
                     else // The filename is between quotes
                     {
-                        if (pair.second->value.getSize() <= 1)
+                        if (pair.second->value.size() <= 1)
                             continue;
 
                     #ifdef SFML_SYSTEM_WINDOWS
-                        if ((pair.second->value[1] != '/') && (pair.second->value[1] != '\\') && ((pair.second->value.getSize() <= 2) || (pair.second->value[2] != ':')))
+                        if ((pair.second->value[1] != '/') && (pair.second->value[1] != '\\') && ((pair.second->value.size() <= 2) || (pair.second->value[2] != ':')))
                     #else
                         if (pair.second->value[1] != '/')
                     #endif
-                            pair.second->value = '"' + path + pair.second->value.substring(1);
+                            pair.second->value = '"' + path + pair.second->value.substr(1);
                     }
                 }
             }
@@ -110,9 +110,9 @@ namespace tgui
             for (const auto& pair : node->propertyValuePairs)
             {
                 // Check if this property is a reference to another section
-                if (!pair.second->value.isEmpty() && (pair.second->value[0] == '&'))
+                if (!pair.second->value.empty() && (pair.second->value[0] == '&'))
                 {
-                    std::string name = toLower(Deserializer::deserialize(ObjectConverter::Type::String, pair.second->value.substring(1)).getString());
+                    std::string name = toLower(Deserializer::deserialize(ObjectConverter::Type::String, pair.second->value.substr(1)).getString());
 
                     auto sectionsIt = sections.find(name);
                     if (sectionsIt == sections.end())

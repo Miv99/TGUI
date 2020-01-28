@@ -283,7 +283,7 @@ namespace tgui
         m_text.setString(m_listBox->getSelectedItem());
 
         if (previousSelectedItemIndex != m_listBox->getSelectedItemIndex())
-            onItemSelect.emit(this, m_listBox->getSelectedItem(), m_listBox->getSelectedItemId());
+            onItemSelect.emit(this, m_listBox->getSelectedItem(), m_listBox->getSelectedItemId(), m_listBox->getSelectedItemIndex());
 
         return ret;
     }
@@ -298,7 +298,7 @@ namespace tgui
         m_text.setString(m_listBox->getSelectedItem());
 
         if (previousSelectedItemIndex != m_listBox->getSelectedItemIndex())
-            onItemSelect.emit(this, m_listBox->getSelectedItem(), m_listBox->getSelectedItemId());
+            onItemSelect.emit(this, m_listBox->getSelectedItem(), m_listBox->getSelectedItemId(), m_listBox->getSelectedItemIndex());
 
         return ret;
     }
@@ -313,7 +313,7 @@ namespace tgui
         m_text.setString(m_listBox->getSelectedItem());
 
         if (previousSelectedItemIndex != m_listBox->getSelectedItemIndex())
-            onItemSelect.emit(this, m_listBox->getSelectedItem(), m_listBox->getSelectedItemId());
+            onItemSelect.emit(this, m_listBox->getSelectedItem(), m_listBox->getSelectedItemId(), m_listBox->getSelectedItemIndex());
 
         return ret;
     }
@@ -600,7 +600,7 @@ namespace tgui
             {
                 m_listBox->setSelectedItemByIndex(static_cast<std::size_t>(m_listBox->getSelectedItemIndex() + 1));
                 m_text.setString(m_listBox->getSelectedItem());
-                onItemSelect.emit(this, m_listBox->getSelectedItem(), m_listBox->getSelectedItemId());
+                onItemSelect.emit(this, m_listBox->getSelectedItem(), m_listBox->getSelectedItemId(), m_listBox->getSelectedItemIndex());
             }
         }
         else // You are scrolling up
@@ -610,7 +610,7 @@ namespace tgui
             {
                 m_listBox->setSelectedItemByIndex(static_cast<std::size_t>(m_listBox->getSelectedItemIndex() - 1));
                 m_text.setString(m_listBox->getSelectedItem());
-                onItemSelect.emit(this, m_listBox->getSelectedItem(), m_listBox->getSelectedItemId());
+                onItemSelect.emit(this, m_listBox->getSelectedItem(), m_listBox->getSelectedItemId(), m_listBox->getSelectedItemIndex());
             }
         }
 
@@ -820,13 +820,13 @@ namespace tgui
         }
 
         if (node->propertyValuePairs["itemstodisplay"])
-            setItemsToDisplay(tgui::stoi(node->propertyValuePairs["itemstodisplay"]->value));
+            setItemsToDisplay(strToInt(node->propertyValuePairs["itemstodisplay"]->value));
         if (node->propertyValuePairs["textsize"])
-            setTextSize(tgui::stoi(node->propertyValuePairs["textsize"]->value));
+            setTextSize(strToInt(node->propertyValuePairs["textsize"]->value));
         if (node->propertyValuePairs["maximumitems"])
-            setMaximumItems(tgui::stoi(node->propertyValuePairs["maximumitems"]->value));
+            setMaximumItems(strToInt(node->propertyValuePairs["maximumitems"]->value));
         if (node->propertyValuePairs["selecteditemindex"])
-            setSelectedItemByIndex(tgui::stoi(node->propertyValuePairs["selecteditemindex"]->value));
+            setSelectedItemByIndex(strToInt(node->propertyValuePairs["selecteditemindex"]->value));
         if (node->propertyValuePairs["changeitemonscroll"])
             m_changeItemOnScroll = Deserializer::deserialize(ObjectConverter::Type::Bool, node->propertyValuePairs["changeitemonscroll"]->value).getBool();
 
@@ -847,8 +847,8 @@ namespace tgui
 
     Vector2f ComboBox::getInnerSize() const
     {
-        return {getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight(),
-                getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom()};
+        return {std::max(0.f, getSize().x - m_bordersCached.getLeft() - m_bordersCached.getRight()),
+                std::max(0.f, getSize().y - m_bordersCached.getTop() - m_bordersCached.getBottom())};
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -924,7 +924,7 @@ namespace tgui
         if (selectedItemIndex != m_previousSelectedItemIndex)
         {
             m_text.setString(m_listBox->getSelectedItem());
-            onItemSelect.emit(this, m_listBox->getSelectedItem(), m_listBox->getSelectedItemId());
+            onItemSelect.emit(this, m_listBox->getSelectedItem(), m_listBox->getSelectedItemId(), m_listBox->getSelectedItemIndex());
         }
     }
 

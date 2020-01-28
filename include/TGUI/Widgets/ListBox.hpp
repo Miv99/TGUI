@@ -394,16 +394,7 @@ namespace tgui
         /// @see setItemHeight
         ///
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        void setTextSize(unsigned int textSize);
-
-
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        /// @brief Returns the text size of the items
-        ///
-        /// @return The text size
-        ///
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        unsigned int getTextSize() const;
+        void setTextSize(unsigned int textSize) override;
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -615,10 +606,10 @@ namespace tgui
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     public:
 
-        SignalItem onItemSelect   = {"ItemSelected"};   ///< An item was selected in the list box. Optional parameter: selected item
-        SignalItem onMousePress   = {"MousePressed"};   ///< The mouse went down on an item. Optional parameter: selected item
-        SignalItem onMouseRelease = {"MouseReleased"};  ///< The mouse was released on one of the items. Optional parameter: selected item
-        SignalItem onDoubleClick  = {"DoubleClicked"};  ///< An item was double clicked. Optional parameter: selected item
+        SignalItem onItemSelect   = {"ItemSelected"};   ///< An item was selected in the list box. Optional parameter: selected item or its index
+        SignalItem onMousePress   = {"MousePressed"};   ///< The mouse went down on an item. Optional parameter: selected item or its index
+        SignalItem onMouseRelease = {"MouseReleased"};  ///< The mouse was released on one of the items. Optional parameter: selected item or its index
+        SignalItem onDoubleClick  = {"DoubleClicked"};  ///< An item was double clicked. Optional parameter: selected item or its index
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -637,7 +628,6 @@ namespace tgui
         // The size must be stored
         unsigned int m_itemHeight = 0;
         unsigned int m_requestedTextSize = 0;
-        unsigned int m_textSize = 0;
 
         // This will store the maximum number of items in the list box (zero by default, meaning that there is no limit)
         std::size_t m_maxItems = 0;
