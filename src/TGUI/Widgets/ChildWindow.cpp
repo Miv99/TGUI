@@ -692,12 +692,12 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void ChildWindow::keyPressed(const sf::Event::KeyEvent& event)
+    bool ChildWindow::keyPressed(const sf::Event::KeyEvent& event)
     {
         if (event.code == sf::Keyboard::Escape)
             onEscapeKeyPressed.emit(this);
 
-        Container::keyPressed(event);
+        return Container::keyPressed(event);
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

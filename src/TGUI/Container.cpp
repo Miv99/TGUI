@@ -708,14 +708,14 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void Container::keyPressed(const sf::Event::KeyEvent& event)
+    bool Container::keyPressed(const sf::Event::KeyEvent& event)
     {
         sf::Event newEvent;
         newEvent.type = sf::Event::KeyPressed;
         newEvent.key = event;
 
         // Let the event manager handle the event
-        handleEvent(newEvent);
+        return handleEvent(newEvent);
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1029,8 +1029,7 @@ namespace tgui
                 #endif
 
                     // Tell the widget that the key was pressed
-                    m_focusedWidget->keyPressed(event.key);
-                    return true;
+                    return m_focusedWidget->keyPressed(event.key);
                 }
             }
 

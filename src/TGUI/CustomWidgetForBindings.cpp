@@ -162,10 +162,12 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void CustomWidgetForBindings::keyPressed(const sf::Event::KeyEvent& event)
+    bool CustomWidgetForBindings::keyPressed(const sf::Event::KeyEvent& event)
     {
-        Widget::keyPressed(event);
-        implKeyPressed(event);
+		bool consumeEvent = false;
+		consumeEvent = consumeEvent || Widget::keyPressed(event);
+		consumeEvent = consumeEvent || implKeyPressed(event);
+		return consumeEvent;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -634,8 +634,8 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void EditBox::keyPressed(const sf::Event::KeyEvent& event)
-    {
+    bool EditBox::keyPressed(const sf::Event::KeyEvent& event)
+    {        
         if (event.code == sf::Keyboard::Return)
             onReturnKeyPress.emit(this, m_text);
         else if (event.code == sf::Keyboard::BackSpace)
@@ -667,7 +667,7 @@ namespace tgui
             else if (keyboard::isKeyPressMoveCaretLineEnd(event) || keyboard::isKeyPressMoveCaretDown(event)
                   || keyboard::isKeyPressMoveCaretDocumentEnd(event) || (event.code == sf::Keyboard::PageDown))
                 m_selEnd = m_text.getSize();
-            else
+            else 
                 caretMoved = false;
 
             if (caretMoved)
@@ -682,6 +682,8 @@ namespace tgui
         // The caret should be visible again
         m_caretVisible = true;
         m_animationTimeElapsed = {};
+        
+        return true;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

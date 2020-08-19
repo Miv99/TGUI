@@ -143,11 +143,15 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void CheckBox::keyPressed(const sf::Event::KeyEvent& event)
+    bool CheckBox::keyPressed(const sf::Event::KeyEvent& event)
     {
         // Check or uncheck the checkbox if the space key or the return key was pressed
         if ((event.code == sf::Keyboard::Space) || (event.code == sf::Keyboard::Return))
+        {
             setChecked(!m_checked);
+            return true;
+        }
+        return false;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

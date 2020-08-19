@@ -225,10 +225,14 @@ namespace tgui
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void Button::keyPressed(const sf::Event::KeyEvent& event)
+    bool Button::keyPressed(const sf::Event::KeyEvent& event)
     {
         if ((event.code == sf::Keyboard::Space) || (event.code == sf::Keyboard::Return))
+        {
             onPress.emit(this, m_text.getString());
+            return true;
+        }
+        return false;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
