@@ -45,6 +45,8 @@ namespace tgui
             return value;
         }
     }
+    
+    float ChildWindow::START_RESIZE_MAX_DISTANCE = 4;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -471,33 +473,50 @@ namespace tgui
         moveToFront();
 
         onMousePress.emit(this);
-
-        if (FloatRect{getChildWidgetsOffset(), getSize()}.contains(pos))
-        {
-            // Propagate the event to the child widgets
-            Container::leftMousePressed(pos + getPosition());
-        }
-        else if (!FloatRect{m_bordersCached.getLeft(), m_bordersCached.getTop(), getSize().x, getSize().y + m_titleBarHeightCached + m_borderBelowTitleBarCached}.contains(pos))
+        if (FloatRect{-START_RESIZE_MAX_DISTANCE, -START_RESIZE_MAX_DISTANCE, getSize().x + START_RESIZE_MAX_DISTANCE * 2, getSize().y + m_titleBarHeightCached + m_borderBelowTitleBarCached + START_RESIZE_MAX_DISTANCE * 2}.contains(pos))
         {
             if (!m_focused)
                 setFocused(true);
 
             // Mouse is on top of the borders
+            bool startedDraggingResize = false;
             if (m_resizable)
             {
                 // Check on which border the mouse is standing
                 m_resizeDirection = ResizeNone;
-                if (pos.x < m_bordersCached.getLeft())
+                if (pos.x < START_RESIZE_MAX_DISTANCE)
+                {
                     m_resizeDirection |= ResizeLeft;
-                if (pos.y < m_bordersCached.getTop())
+                    startedDraggingResize = true;
+                }
+                if (pos.y < START_RESIZE_MAX_DISTANCE)
+                {
                     m_resizeDirection |= ResizeTop;
-                if (pos.x >= getFullSize().x - m_bordersCached.getRight())
+                    startedDraggingResize = true;
+                }
+                if (pos.x >= getFullSize().x - START_RESIZE_MAX_DISTANCE)
+                {
                     m_resizeDirection |= ResizeRight;
-                if (pos.y >= getFullSize().y - m_bordersCached.getBottom())
+                    startedDraggingResize = true;
+                }
+                if (pos.y >= getFullSize().y - START_RESIZE_MAX_DISTANCE)
+                {
                     m_resizeDirection |= ResizeBottom;
+                    startedDraggingResize = true;
+                }
             }
 
             m_draggingPosition = pos;
+            if (startedDraggingResize)
+            {
+                return;
+            }
+        }
+        
+        if (FloatRect{getChildWidgetsOffset(), getSize()}.contains(pos))
+        {
+            // Propagate the event to the child widgets
+            Container::leftMousePressed(pos + getPosition());
         }
         else if (FloatRect{m_bordersCached.getLeft(), m_bordersCached.getTop(), getSize().x, m_titleBarHeightCached}.contains(pos))
         {

@@ -495,6 +495,10 @@ namespace tgui
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     protected:
 
+        // The max distance from the mouse to the widget borders that a left mouse 
+        // press would no longer be the start of a resize
+        static float START_RESIZE_MAX_DISTANCE;
+
         Text           m_titleText;
         Vector2f       m_draggingPosition;
         Vector2f       m_maximumSize    = {std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()};
