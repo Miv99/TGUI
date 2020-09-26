@@ -248,7 +248,7 @@ namespace tgui
 
     bool Panel::updateTime(Duration elapsedTime)
     {
-        const bool screenRefreshRequired = Widget::updateTime(elapsedTime);
+        const bool screenRefreshRequired = Group::updateTime(elapsedTime);
 
         if (m_animationTimeElapsed >= getDoubleClickTime())
         {
