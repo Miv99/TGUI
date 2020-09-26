@@ -569,6 +569,7 @@ namespace tgui
         float   m_distanceToSideCached = 0;
         float   m_paddingBetweenButtonsCached = 0;
         float   m_minimumResizableBorderWidthCached = 10;
+        float   m_resizeHitboxSize = 4;
         bool    m_showTextOnTitleButtonsCached = false;
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

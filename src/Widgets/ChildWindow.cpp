@@ -494,32 +494,50 @@ namespace tgui
 
         onMousePress.emit(this);
 
-        if (FloatRect{getChildWidgetsOffset(), getClientSize()}.contains(pos))
-        {
-            // Propagate the event to the child widgets
-            Container::leftMousePressed(pos + getPosition());
-        }
-        else if (!FloatRect{m_bordersCached.getLeft(), m_bordersCached.getTop(), getClientSize().x, getClientSize().y + m_titleBarHeightCached + m_borderBelowTitleBarCached}.contains(pos))
+        if (FloatRect{-m_resizeHitboxSize, -m_resizeHitboxSize, getClientSize().x + m_resizeHitboxSize * 2, getClientSize().y + m_titleBarHeightCached + m_borderBelowTitleBarCached + m_resizeHitboxSize * 2}.contains(pos))
         {
             if (!m_focused)
                 setFocused(true);
 
             // Mouse is on top of the borders
+            bool startedDraggingResize = false;
             if (m_resizable)
             {
                 // Check on which border the mouse is standing
                 m_resizeDirection = ResizeNone;
-                if (pos.x < m_bordersCached.getLeft())
+                if (pos.x < m_resizeHitboxSize)
+                {
                     m_resizeDirection |= ResizeLeft;
-                if (pos.y < m_bordersCached.getTop())
+                    startedDraggingResize = true;
+                }
+                if (pos.y < m_resizeHitboxSize)
+                {
                     m_resizeDirection |= ResizeTop;
-                if (pos.x >= getSize().x - m_bordersCached.getRight())
+                    startedDraggingResize = true;
+                }
+                if (pos.x >= getFullSize().x - m_resizeHitboxSize)
+                {
                     m_resizeDirection |= ResizeRight;
-                if (pos.y >= getSize().y - m_bordersCached.getBottom())
+                    startedDraggingResize = true;
+                }
+                if (pos.y >= getFullSize().y - m_resizeHitboxSize)
+                {
                     m_resizeDirection |= ResizeBottom;
+                    startedDraggingResize = true;
+                }
             }
 
             m_draggingPosition = pos;
+            if (startedDraggingResize)
+            {
+                return;
+            }
+        }
+        
+        if (FloatRect{getChildWidgetsOffset(), getClientSize()}.contains(pos))
+        {
+            // Propagate the event to the child widgets
+            Container::leftMousePressed(pos + getPosition());
         }
         else if (FloatRect{m_bordersCached.getLeft(), m_bordersCached.getTop(), getClientSize().x, m_titleBarHeightCached}.contains(pos))
         {
@@ -793,29 +811,29 @@ namespace tgui
             return;
 
         Cursor::Type requestedCursor;
-        if (mousePos.x >= getChildWidgetsOffset().x + getClientSize().x)
+        if (std::abs(mousePos.x - getChildWidgetsOffset().x - getClientSize().x) < m_resizeHitboxSize)
         {
-            if (mousePos.y >= getChildWidgetsOffset().y + getClientSize().y)
+            if (std::abs(mousePos.y - getChildWidgetsOffset().y - getClientSize().y) < m_resizeHitboxSize)
                 requestedCursor = Cursor::Type::SizeBottomRight;
-            else if (mousePos.y < m_bordersCached.getTop())
+            else if (std::abs(mousePos.y) < m_resizeHitboxSize)
                 requestedCursor = Cursor::Type::SizeTopRight;
             else
                 requestedCursor = Cursor::Type::SizeRight;
         }
-        else if (mousePos.x < m_bordersCached.getLeft())
+        else if (std::abs(mousePos.x) < m_resizeHitboxSize)
         {
-            if (mousePos.y >= getChildWidgetsOffset().y + getClientSize().y)
+            if (std::abs(mousePos.y - getChildWidgetsOffset().y - getClientSize().y) < m_resizeHitboxSize)
                 requestedCursor = Cursor::Type::SizeBottomLeft;
-            else if (mousePos.y < m_bordersCached.getTop())
+            else if (std::abs(mousePos.y) < m_resizeHitboxSize)
                 requestedCursor = Cursor::Type::SizeTopLeft;
             else
                 requestedCursor = Cursor::Type::SizeLeft;
         }
-        else if (mousePos.y < m_bordersCached.getTop())
+        else if (std::abs(mousePos.y) < m_resizeHitboxSize)
         {
             requestedCursor = Cursor::Type::SizeTop;
         }
-        else if (mousePos.y >= getChildWidgetsOffset().y + getClientSize().y)
+        else if (std::abs(mousePos.y - getChildWidgetsOffset().y - getClientSize().y) < m_resizeHitboxSize)
         {
             requestedCursor = Cursor::Type::SizeBottom;
         }
