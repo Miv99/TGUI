@@ -489,10 +489,11 @@ namespace tgui
         if (getSize() != m_prevSize)
         {
             m_prevSize = getSize();
-            onSizeChange.emit(this, getSize());
 
             for (auto& layout : m_boundSizeLayouts)
                 layout->recalculateValue();
+            
+            onSizeChange.emit(this, getSize());
         }
     }
 
